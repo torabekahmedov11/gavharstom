@@ -31,9 +31,8 @@ try {
   run('npm install', path.join(__dirname, 'client-web'));
   run('npm run build', path.join(__dirname, 'client-web'));
 
-  // 3. Install dependencies and Generate Prisma for Backend
-  run('npm install', path.join(__dirname, 'api'));
-  run('npx prisma generate', path.join(__dirname, 'api'));
+  // 3. Install dependencies for Backend (postinstall will run prisma generate automatically)
+  run('npm install', path.join(__dirname, 'backend'));
 
   // 4. Merge Builds into 'public' folder
   const publicDir = path.join(__dirname, 'public');
