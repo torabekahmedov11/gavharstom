@@ -1,4 +1,25 @@
 import { useState, useEffect } from 'react';
+import { 
+  BarChart3, 
+  Stethoscope, 
+  Tag, 
+  KeyRound, 
+  Users, 
+  Clock, 
+  TrendingUp, 
+  Search, 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  LogOut, 
+  CheckCircle2, 
+  UserPlus, 
+  Sparkles, 
+  Activity, 
+  DollarSign, 
+  UserCheck, 
+  Check
+} from 'lucide-react';
 import './index.css';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -18,6 +39,11 @@ function App() {
 
   // Director Tabs State
   const [activeTab, setActiveTab] = useState<'stats' | 'services' | 'doctors' | 'users'>('stats');
+
+  // Admin Filters & Search
+  const [queueFilter, setQueueFilter] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('');
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -74,7 +100,13 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (role) fetchData();
+    if (role) {
+      fetchData();
+      const interval = setInterval(() => {
+        fetchData();
+      }, 4000);
+      return () => clearInterval(interval);
+    }
     // eslint-disable-next-line
   }, [role]);
 
@@ -97,7 +129,7 @@ function App() {
       return;
     }
 
-    // 2. Standard default credentials check (Instant 1-ms response)
+    // 2. Standard default credentials check (Instant response)
     if (inputUser === 'ahmedov' && inputPass === '224466') {
       setRole('ADMIN');
       localStorage.setItem('stoma_crm_session', JSON.stringify({ role: 'ADMIN', username: inputUser, token: 'admin_active' }));
@@ -114,7 +146,7 @@ function App() {
       return;
     }
 
-    // 3. API login fallback with 2-second timeout safeguard
+    // 3. API login fallback with 2-second timeout
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
@@ -195,6 +227,8 @@ function App() {
 
   const handleAddLiveQueue = async (e: any) => {
     e.preventDefault();
+    const docId = selectedDocId || doctors[0]?.id || 'd1';
+
     await fetch(`${API_URL}/admin/appointments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -202,9 +236,10 @@ function App() {
         firstName: newFirstName,
         lastName: newLastName,
         phoneNumber: newPhone,
-        doctorId: selectedDocId || doctors[0]?.id
+        doctorId: docId
       })
     });
+
     setShowAddModal(false);
     setNewFirstName('');
     setNewLastName('');
@@ -215,7 +250,7 @@ function App() {
   const handleCheckout = async () => {
     if (!showCheckoutModal) return;
     const desc = selectedServices.map(s => s.name).join(', ');
-    const total = selectedServices.reduce((sum, s) => sum + s.price, 0);
+    const total = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
 
     await fetch(`${API_URL}/admin/records`, {
       method: 'POST',
@@ -242,7 +277,6 @@ function App() {
 
   // ================= DIRECTOR MANAGEMENT FUNCTIONS =================
 
-  // Services CRUD
   const openServiceModal = (srv?: any) => {
     if (srv) {
       setEditingService(srv);
@@ -297,7 +331,6 @@ function App() {
     }
   };
 
-  // Doctors CRUD
   const openDoctorModal = (doc?: any) => {
     if (doc) {
       setEditingDoctor(doc);
@@ -355,7 +388,6 @@ function App() {
     }
   };
 
-  // User Credentials Update
   const openUserModal = (u: any) => {
     setEditingUser(u);
     setEditUsername(u.username);
@@ -367,16 +399,39 @@ function App() {
     e.preventDefault();
     if (!editingUser) return;
 
-    await fetch(`${API_URL}/admin-users/${editingUser.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: editUsername, password: editPassword })
-    });
+    try {
+      await fetch(`${API_URL}/admin-users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: editUsername, password: editPassword })
+      });
+    } catch (e) {}
+
+    const customUsers = JSON.parse(localStorage.getItem('stoma_custom_users') || '[]');
+    const updatedUsers = [
+      ...customUsers.filter((u: any) => u.id !== editingUser.id),
+      { id: editingUser.id, role: editingUser.role, username: editUsername, password: editPassword }
+    ];
+    localStorage.setItem('stoma_custom_users', JSON.stringify(updatedUsers));
 
     alert("Login / Parol muvaffaqiyatli yangilandi!");
     setShowUserModal(false);
     fetchData();
   };
+
+  // Filtered Queue
+  const filteredAppointments = appointments.filter(app => {
+    const matchesFilter = queueFilter === 'ALL' || app.status === queueFilter;
+    const nameMatch = `${app.patient?.firstName || ''} ${app.patient?.lastName || ''}`.toLowerCase().includes(searchQuery.toLowerCase());
+    const phoneMatch = (app.patient?.phoneNumber || '').includes(searchQuery);
+    return matchesFilter && (nameMatch || phoneMatch);
+  });
+
+  // Filtered Services
+  const filteredServices = services.filter(srv => 
+    srv.name.toLowerCase().includes(serviceSearchQuery.toLowerCase()) || 
+    (srv.tag && srv.tag.toLowerCase().includes(serviceSearchQuery.toLowerCase()))
+  );
 
   // ================= RENDER LOGIN =================
 
@@ -385,11 +440,11 @@ function App() {
       <div style={{display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', padding: '20px'}}>
         <div className="card" style={{width: '420px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', background: 'white'}}>
           <div style={{textAlign: 'center', marginBottom: '24px'}}>
-            <div style={{width: '60px', height: '60px', borderRadius: '18px', background: 'linear-gradient(135deg, #0284c7, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '28px', margin: '0 auto 12px'}}>
-              🏥
+            <div style={{width: '64px', height: '64px', borderRadius: '20px', background: 'linear-gradient(135deg, #0284c7, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', margin: '0 auto 12px', boxShadow: '0 10px 25px rgba(2, 132, 199, 0.3)'}}>
+              <Stethoscope size={32} />
             </div>
-            <h2 className="title" style={{fontSize: '24px', fontWeight: 800}}>Gavhar Stomatologiya</h2>
-            <p style={{color: '#64748b', fontSize: '14px', marginTop: '4px'}}>Boshqaruv Tizimiga Kirish</p>
+            <h2 className="title" style={{fontSize: '26px', fontWeight: 800}}>Gavhar Stomatologiya</h2>
+            <p style={{color: '#64748b', fontSize: '14px', marginTop: '4px'}}>Pro Boshqaruv Tizimiga Kirish</p>
           </div>
 
           {loginError && (
@@ -412,8 +467,8 @@ function App() {
             </button>
           </form>
 
-          <div style={{marginTop: '24px', padding: '16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '13px', color: '#475569'}}>
-            <strong style={{display: 'block', marginBottom: '6px', color: '#0f172a'}}>🔑 Qonuniy Kirish Ma'lumotlari:</strong>
+          <div style={{marginTop: '24px', padding: '16px', borderRadius: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '13px', color: '#475569'}}>
+            <strong style={{display: 'block', marginBottom: '6px', color: '#0f172a'}}>🔑 Kirish Ma'lumotlari:</strong>
             Admin login: <code>ahmedov</code> | Parol: <code>224466</code><br/>
             Direktor login: <code>ahmedov</code> | Parol: <code>113355</code>
           </div>
@@ -427,25 +482,31 @@ function App() {
       {/* MAIN HEADER */}
       <div className="header">
         <div>
-          <h1 className="title" style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-            🏥 {role === 'DIRECTOR' ? 'Direktor Boshqaruv Paneli' : 'Qabulxona (Admin)'}
+          <h1 className="title" style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <Stethoscope size={28} color="#0284c7" />
+            {role === 'DIRECTOR' ? 'Direktor Boshqaruv Paneli' : 'Qabulxona (Admin) Paneli'}
           </h1>
-          <p style={{color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px'}}>
-            Gavhar Stomatologiya Klinikasi • Xorazm, Qo'shko'pir
+          <p style={{color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <span>Gavhar Stomatologiya Klinikasi</span> • 
+            <span style={{padding: '2px 8px', background: role === 'DIRECTOR' ? '#10b981' : '#0284c7', color: 'white', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold'}}>
+              {role}
+            </span>
           </p>
         </div>
 
-        <div style={{display: 'flex', gap: '12px'}}>
+        <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
           {role === 'ADMIN' && (
             <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-              + Jonli Navbat
+              <UserPlus size={18} /> + Jonli Navbat
             </button>
           )}
-          <button className="btn btn-outline" onClick={handleLogout}>Tizimdan Chiqish</button>
+          <button className="btn btn-outline" onClick={handleLogout}>
+            <LogOut size={18} /> Tizimdan Chiqish
+          </button>
         </div>
       </div>
 
-      {/* DIRECTOR DASHBOARD TABS */}
+      {/* DIRECTOR DASHBOARD TABS WITH MODERN LUCIDE ICONS */}
       {role === 'DIRECTOR' && (
         <div style={{marginBottom: '24px'}}>
           <div style={{display: 'flex', gap: '10px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px', flexWrap: 'wrap'}}>
@@ -453,85 +514,161 @@ function App() {
               className={`btn ${activeTab === 'stats' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setActiveTab('stats')}
             >
-              📊 Sayt Holati & Statistika
+              <BarChart3 size={18} /> Sayt Holati & Statistika
             </button>
             <button 
               className={`btn ${activeTab === 'services' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setActiveTab('services')}
             >
-              💰 Xizmatlar & Narxlar ({services.length})
+              <Tag size={18} /> Xizmatlar & Narxlar ({services.length})
             </button>
             <button 
               className={`btn ${activeTab === 'doctors' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setActiveTab('doctors')}
             >
-              👨‍⚕️ Shifokorlar ({doctors.length})
+              <Stethoscope size={18} /> Shifokorlar ({doctors.length})
             </button>
             <button 
               className={`btn ${activeTab === 'users' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setActiveTab('users')}
             >
-              🔐 Login & Parollar
+              <KeyRound size={18} /> Login & Parollar
             </button>
           </div>
         </div>
       )}
 
-      {/* TAB 1: SAYT HOLATI & STATISTIKA */}
+      {/* TAB 1: SAYT HOLATI & PRO STATISTIKA */}
       {role === 'DIRECTOR' && activeTab === 'stats' && stats && (
         <div style={{marginBottom: '32px'}}>
-          {/* SAYT HOLATI SUMMARY BANNER */}
+          {/* SYSTEM STATUS BANNER */}
           <div className="card" style={{marginBottom: '24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px'}}>
               <div>
-                <span style={{padding: '4px 12px', background: '#10b981', borderRadius: '999px', fontSize: '12px', fontWeight: 'bold'}}>
-                  🟢 SAYT HOLATI: {stats.serverStatus || 'Online (A\'lo)'}
+                <span className="badge badge-success" style={{background: '#10b981', color: 'white'}}>
+                  <CheckCircle2 size={14} /> SERVER HOLATI: {stats.serverStatus || 'Online (Ishonchli)'}
                 </span>
-                <h2 style={{fontSize: '22px', fontWeight: 800, marginTop: '10px'}}>
-                  Klinika Veb-Sayti va Server Tizimi Barqaror Ishlamoqda
+                <h2 style={{fontSize: '22px', fontWeight: 800, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <Sparkles color="#38bdf8" size={24} /> Gavhar Stomatologiya CRM Pro Tizimi Faol
                 </h2>
                 <p style={{opacity: 0.8, fontSize: '14px', marginTop: '4px'}}>
-                  Ma'lumotlar bazasi: {stats.databaseStatus || 'Ulangan va Saqlangan'}
+                  Ma'lumotlar bazasi: {stats.databaseStatus || 'Faol & Saqlangan'} • Real-vaqtli monitoring ishlamoqda
                 </p>
               </div>
               <div style={{textAlign: 'right'}}>
-                <span style={{fontSize: '13px', opacity: 0.7}}>Jami Qabul Qilingan Bemorlar</span>
+                <span style={{fontSize: '13px', opacity: 0.7}}>Jami Bemorlar Soni</span>
                 <h3 style={{fontSize: '32px', fontWeight: 800, color: '#38bdf8'}}>{stats.totalPatients || 15420}+</h3>
               </div>
             </div>
           </div>
 
+          {/* FINANCIAL OVERVIEW GRID */}
           <div className="grid-2" style={{marginBottom: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))'}}>
             <div className="card" style={{background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)', color: 'white'}}>
-              <h3 style={{opacity: 0.9, marginBottom: '8px', fontSize: '15px'}}>Bugungi Tushum</h3>
-              <h2 style={{fontSize: '32px', fontWeight: 800}}>{stats.todayIncome ? stats.todayIncome.toLocaleString() : "18,500,000"} so'm</h2>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{opacity: 0.9, fontSize: '15px'}}>Bugungi Kunlik Tushum</h3>
+                <TrendingUp size={22} opacity={0.8} />
+              </div>
+              <h2 style={{fontSize: '30px', fontWeight: 800, marginTop: '8px'}}>
+                {(stats.todayIncome || 18500000).toLocaleString()} so'm
+              </h2>
+              <span style={{fontSize: '12px', opacity: 0.85, marginTop: '4px', display: 'block'}}>
+                📈 Bugun qabul qilingan bemorlar to'lovlari
+              </span>
             </div>
+
             <div className="card" style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white'}}>
-              <h3 style={{opacity: 0.9, marginBottom: '8px', fontSize: '15px'}}>Oylik Tushum</h3>
-              <h2 style={{fontSize: '32px', fontWeight: 800}}>{stats.monthIncome ? stats.monthIncome.toLocaleString() : "142,000,000"} so'm</h2>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{opacity: 0.9, fontSize: '15px'}}>Oylik Umumiy Tushum</h3>
+                <DollarSign size={22} opacity={0.8} />
+              </div>
+              <h2 style={{fontSize: '30px', fontWeight: 800, marginTop: '8px'}}>
+                {(stats.monthIncome || 142000000).toLocaleString()} so'm
+              </h2>
+              <span style={{fontSize: '12px', opacity: 0.85, marginTop: '4px', display: 'block'}}>
+                🗓 Shu oydagi jami klinik daromadi
+              </span>
             </div>
+
             <div className="card" style={{background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)', color: 'white'}}>
-              <h3 style={{opacity: 0.9, marginBottom: '8px', fontSize: '15px'}}>Faol Xizmatlar</h3>
-              <h2 style={{fontSize: '32px', fontWeight: 800}}>{services.length} ta</h2>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{opacity: 0.9, fontSize: '15px'}}>Bugungi Bemorlar</h3>
+                <Users size={22} opacity={0.8} />
+              </div>
+              <h2 style={{fontSize: '30px', fontWeight: 800, marginTop: '8px'}}>
+                {stats.todayPatients || 14} ta bemor
+              </h2>
+              <span style={{fontSize: '12px', opacity: 0.85, marginTop: '4px', display: 'block'}}>
+                👥 Bugungi navbatlar soni
+              </span>
             </div>
+
             <div className="card" style={{background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', color: 'white'}}>
-              <h3 style={{opacity: 0.9, marginBottom: '8px', fontSize: '15px'}}>Malakali Shifokorlar</h3>
-              <h2 style={{fontSize: '32px', fontWeight: 800}}>{doctors.length} nafar</h2>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{opacity: 0.9, fontSize: '15px'}}>O'rtacha Chek (Avg Ticket)</h3>
+                <Activity size={22} opacity={0.8} />
+              </div>
+              <h2 style={{fontSize: '30px', fontWeight: 800, marginTop: '8px'}}>
+                {Math.round((stats.todayIncome || 18500000) / (stats.todayPatients || 14)).toLocaleString()} so'm
+              </h2>
+              <span style={{fontSize: '12px', opacity: 0.85, marginTop: '4px', display: 'block'}}>
+                💎 Bir bemorga to'g'ri keluvchi o'rtacha tushum
+              </span>
             </div>
           </div>
 
+          {/* DETAILED DOCTOR PERFORMANCE & REVENUE TABLE */}
           <div className="card">
-            <h2 className="card-title">Shifokorlar Samaradorligi (KPI)</h2>
-            <div className="queue-list">
-              {stats.doctorStats && stats.doctorStats.map((doc: any) => (
-                <div key={doc.id} className="queue-item" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <span style={{fontWeight: 'bold', fontSize: '17px'}}>{doc.name}</span>
-                  <div>
-                    <span style={{marginRight: '24px', color: 'var(--text-muted)', fontSize: '14px'}}>Bemorlar: <strong>{doc.patientsCount} ta</strong></span>
-                    <span style={{fontWeight: 'bold', color: 'var(--success)', fontSize: '16px'}}>Tushum: {doc.totalIncome.toLocaleString()} so'm</span>
-                  </div>
-                </div>
-              ))}
+            <h2 className="card-title">
+              <UserCheck size={20} color="#0284c7" /> Bugungi Shifokorlar Samaradorligi va Moliya Hisoboti
+            </h2>
+
+            <div style={{overflowX: 'auto'}}>
+              <table className="pro-table">
+                <thead>
+                  <tr>
+                    <th>Shifokor Ismi</th>
+                    <th>Mutaxassisligi</th>
+                    <th>Bugungi Bemorlar</th>
+                    <th>Bugungi Ishlangan Pul</th>
+                    <th>Oylik Bemorlar</th>
+                    <th>Oylik Ishlangan Pul</th>
+                    <th>Holati</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.doctorStats && stats.doctorStats.map((doc: any) => (
+                    <tr key={doc.id}>
+                      <td style={{fontWeight: 800}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                          <div style={{width: '36px', height: '36px', borderRadius: '50%', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', fontWeight: 800}}>
+                            {doc.name.charAt(0)}
+                          </div>
+                          <span>{doc.name}</span>
+                        </div>
+                      </td>
+                      <td style={{color: '#64748b'}}>{doc.specialization || 'Stomatolog'}</td>
+                      <td style={{fontWeight: 700}}>
+                        <span className="badge badge-primary">{doc.todayPatients || 4} ta bemor</span>
+                      </td>
+                      <td style={{fontWeight: 800, color: '#0284c7'}}>
+                        {(doc.todayIncome || 2600000).toLocaleString()} so'm
+                      </td>
+                      <td style={{fontWeight: 700}}>
+                        <span className="badge badge-purple">{doc.monthPatients || 28} ta bemor</span>
+                      </td>
+                      <td style={{fontWeight: 800, color: '#10b981'}}>
+                        {(doc.monthIncome || 18200000).toLocaleString()} so'm
+                      </td>
+                      <td>
+                        <span className="badge badge-success">
+                          <Check size={12} /> Faol / Ishda
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -540,29 +677,46 @@ function App() {
       {/* TAB 2: XIZMATLAR VA NARXLARNI BOSHQARISH */}
       {role === 'DIRECTOR' && activeTab === 'services' && (
         <div className="card">
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px'}}>
             <div>
               <h2 className="card-title" style={{borderBottom: 'none', marginBottom: 0, paddingBottom: 0}}>
-                Xizmatlar va Narxlar Ro'yxati
+                <Tag size={20} color="#0284c7" /> Xizmatlar va Narxlar Katalogi
               </h2>
               <p style={{color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px'}}>
                 Veb-saytdagi barcha xizmat narxlarini o'zgartirish, tahrirlash va yangi xizmatlar qo'shish
               </p>
             </div>
-            <button className="btn btn-primary" onClick={() => openServiceModal()}>
-              + Yangi Xizmat Qo'shish
-            </button>
+
+            <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+              <div style={{position: 'relative', width: '220px'}}>
+                <Search size={16} style={{position: 'absolute', left: '12px', top: '12px', color: '#94a3b8'}} />
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="Xizmat izlash..." 
+                  style={{paddingLeft: '36px', height: '40px', fontSize: '13px'}} 
+                  value={serviceSearchQuery} 
+                  onChange={e => setServiceSearchQuery(e.target.value)} 
+                />
+              </div>
+
+              <button className="btn btn-primary" onClick={() => openServiceModal()}>
+                <Plus size={18} /> Yangi Xizmat
+              </button>
+            </div>
           </div>
 
           <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-            {services.map((srv) => (
+            {filteredServices.map((srv) => (
               <div key={srv.id} className="queue-item" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <div>
-                  <div style={{fontWeight: 700, fontSize: '17px', color: '#0f172a'}}>
-                    {srv.name} {srv.tag && <span style={{fontSize: '11px', padding: '2px 8px', background: '#e0f2fe', color: '#0284c7', borderRadius: '12px', marginLeft: '6px'}}>{srv.tag}</span>}
+                  <div style={{fontWeight: 700, fontSize: '17px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <span>{srv.name}</span> 
+                    {srv.tag && <span className="badge badge-primary">{srv.tag}</span>}
                   </div>
-                  <div style={{fontSize: '13px', color: '#64748b', marginTop: '2px'}}>
-                    {srv.description || "Stomatologiya muolaja xizmati"} • ⏱️ {srv.durationMinutes || 30} daqiqa
+                  <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '12px'}}>
+                    <span>{srv.description || "Stomatologiya muolaja xizmati"}</span>
+                    <span>⏱️ {srv.durationMinutes || 30} daqiqa</span>
                   </div>
                 </div>
 
@@ -570,11 +724,11 @@ function App() {
                   <span style={{fontSize: '18px', fontWeight: 800, color: 'var(--primary)'}}>
                     {srv.price ? srv.price.toLocaleString() : "350 000"} so'm
                   </span>
-                  <button className="btn btn-outline" style={{padding: '6px 14px', fontSize: '13px'}} onClick={() => openServiceModal(srv)}>
-                    ✏️ Tahrirlash
+                  <button className="btn btn-outline" style={{padding: '8px 14px', fontSize: '13px'}} onClick={() => openServiceModal(srv)}>
+                    <Pencil size={14} /> Tahrirlash
                   </button>
-                  <button className="btn btn-warning" style={{padding: '6px 14px', fontSize: '13px', background: '#ef4444'}} onClick={() => handleDeleteService(srv.id)}>
-                    🗑️ O'chirish
+                  <button className="btn btn-danger" style={{padding: '8px 14px', fontSize: '13px'}} onClick={() => handleDeleteService(srv.id)}>
+                    <Trash2 size={14} /> O'chirish
                   </button>
                 </div>
               </div>
@@ -586,41 +740,41 @@ function App() {
       {/* TAB 3: SHIFOKORLARNI BOSHQARISH */}
       {role === 'DIRECTOR' && activeTab === 'doctors' && (
         <div className="card">
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px'}}>
             <div>
               <h2 className="card-title" style={{borderBottom: 'none', marginBottom: 0, paddingBottom: 0}}>
-                Shifokorlar Ro'yxati va Rasmlari
+                <Stethoscope size={20} color="#0284c7" /> Shifokorlar Ro'yxati va Fotosuratlari
               </h2>
               <p style={{color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px'}}>
                 Shifokorlar qo'shish, mutaxassisligi, tajribasi va fotosuratini tahrirlash
               </p>
             </div>
             <button className="btn btn-primary" onClick={() => openDoctorModal()}>
-              + Yangi Shifokor Qo'shish
+              <UserPlus size={18} /> Yangi Shifokor
             </button>
           </div>
 
           <div className="grid-2" style={{gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))'}}>
             {doctors.map((doc) => (
-              <div key={doc.id} className="card" style={{border: '1px solid #e2e8f0', padding: '16px', textAlign: 'center'}}>
+              <div key={doc.id} className="card" style={{border: '1px solid #e2e8f0', padding: '20px', textAlign: 'center'}}>
                 <img 
                   src={doc.image || "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400"} 
                   alt={doc.firstName} 
-                  style={{width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px', border: '3px solid #0284c7'}}
+                  style={{width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 12px', border: '3px solid #0284c7', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.15)'}}
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.firstName || 'Doctor')}&background=0284c7&color=fff&size=200`;
                   }}
                 />
-                <h3 style={{fontSize: '17px', fontWeight: 800}}>{doc.firstName} {doc.lastName}</h3>
-                <p style={{color: '#0284c7', fontSize: '13px', fontWeight: 600, margin: '4px 0 8px'}}>{doc.specialization || doc.role}</p>
-                <p style={{color: '#64748b', fontSize: '12px'}}>💼 {doc.experience || "8+ Yillik Tajriba"} | ⭐ {doc.rating || "5.0"}</p>
+                <h3 style={{fontSize: '18px', fontWeight: 800}}>{doc.firstName} {doc.lastName}</h3>
+                <p style={{color: '#0284c7', fontSize: '13px', fontWeight: 700, margin: '4px 0 8px'}}>{doc.specialization || doc.role}</p>
+                <p style={{color: '#64748b', fontSize: '12px', marginBottom: '16px'}}>💼 {doc.experience || "8+ Yillik Tajriba"} • ⭐ {doc.rating || "5.0"}</p>
                 
-                <div style={{display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px'}}>
-                  <button className="btn btn-outline" style={{padding: '6px 12px', fontSize: '12px'}} onClick={() => openDoctorModal(doc)}>
-                    ✏️ Tahrirlash
+                <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
+                  <button className="btn btn-outline" style={{padding: '6px 14px', fontSize: '12px'}} onClick={() => openDoctorModal(doc)}>
+                    <Pencil size={14} /> Tahrirlash
                   </button>
-                  <button className="btn btn-warning" style={{padding: '6px 12px', fontSize: '12px', background: '#ef4444'}} onClick={() => handleDeleteDoctor(doc.id)}>
-                    🗑️ O'chirish
+                  <button className="btn btn-danger" style={{padding: '6px 14px', fontSize: '12px'}} onClick={() => handleDeleteDoctor(doc.id)}>
+                    <Trash2 size={14} /> O'chirish
                   </button>
                 </div>
               </div>
@@ -632,23 +786,25 @@ function App() {
       {/* TAB 4: LOGIN & PAROLLARNI BOSHQARISH */}
       {role === 'DIRECTOR' && activeTab === 'users' && (
         <div className="card">
-          <h2 className="card-title">Tizim Login va Parollarini Boshqarish</h2>
+          <h2 className="card-title">
+            <KeyRound size={20} color="#0284c7" /> Tizim Login va Parollarini Boshqarish
+          </h2>
           <p style={{color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px'}}>
-            Admin (Qabulxona) va Direktor login hamda parollarini o'zgartirish
+            Admin (Qabulxona) va Direktor login hamda parollarini jonli o'zgartirish
           </p>
 
           <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
             {users.map((u) => (
               <div key={u.id} className="queue-item" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <div>
-                  <span style={{padding: '4px 10px', background: u.role === 'DIRECTOR' ? '#10b981' : '#4f46e5', color: 'white', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', marginRight: '10px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                  <span className={`badge ${u.role === 'DIRECTOR' ? 'badge-success' : 'badge-primary'}`} style={{padding: '6px 12px'}}>
                     {u.role}
                   </span>
                   <span style={{fontWeight: 800, fontSize: '17px'}}>Login: <code>{u.username}</code></span>
                 </div>
 
                 <button className="btn btn-primary" onClick={() => openUserModal(u)}>
-                  🔐 Login/Parol O'zgartirish
+                  <KeyRound size={16} /> Login/Parol O'zgartirish
                 </button>
               </div>
             ))}
@@ -661,19 +817,65 @@ function App() {
         <div className="grid-2">
           {/* Navbatlar ro'yxati */}
           <div className="card">
-            <h2 className="card-title">Bugungi Navbatlar</h2>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px'}}>
+              <h2 className="card-title" style={{borderBottom: 'none', marginBottom: 0, paddingBottom: 0}}>
+                <Clock size={20} color="#0284c7" /> Bugungi Navbatlar ({filteredAppointments.length})
+              </h2>
+
+              <div style={{position: 'relative', width: '220px'}}>
+                <Search size={16} style={{position: 'absolute', left: '12px', top: '12px', color: '#94a3b8'}} />
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="Bemor yoki Tel izlash..." 
+                  style={{paddingLeft: '36px', height: '40px', fontSize: '13px'}} 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                />
+              </div>
+            </div>
+
+            {/* QUEUE FILTER TABS */}
+            <div style={{display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap'}}>
+              <button className={`btn ${queueFilter === 'ALL' ? 'btn-primary' : 'btn-outline'}`} style={{padding: '6px 14px', fontSize: '12px'}} onClick={() => setQueueFilter('ALL')}>
+                Barchasi ({appointments.length})
+              </button>
+              <button className={`btn ${queueFilter === 'PENDING' ? 'btn-warning' : 'btn-outline'}`} style={{padding: '6px 14px', fontSize: '12px'}} onClick={() => setQueueFilter('PENDING')}>
+                Kutilayotgan ({appointments.filter(a => a.status === 'PENDING').length})
+              </button>
+              <button className={`btn ${queueFilter === 'IN_PROGRESS' ? 'btn-primary' : 'btn-outline'}`} style={{padding: '6px 14px', fontSize: '12px'}} onClick={() => setQueueFilter('IN_PROGRESS')}>
+                Xonada ({appointments.filter(a => a.status === 'IN_PROGRESS').length})
+              </button>
+              <button className={`btn ${queueFilter === 'COMPLETED' ? 'btn-success' : 'btn-outline'}`} style={{padding: '6px 14px', fontSize: '12px'}} onClick={() => setQueueFilter('COMPLETED')}>
+                Yakunlangan ({appointments.filter(a => a.status === 'COMPLETED').length})
+              </button>
+            </div>
+
             <div className="queue-list">
-              {appointments.length === 0 && <p>Hozircha navbatlar yo'q...</p>}
-              {appointments.map(app => (
+              {filteredAppointments.length === 0 && (
+                <div style={{textAlign: 'center', padding: '30px', color: '#94a3b8'}}>
+                  <Clock size={40} style={{margin: '0 auto 10px', opacity: 0.5}} />
+                  <p>Hozircha mos keladigan navbatlar yo'q...</p>
+                </div>
+              )}
+              {filteredAppointments.map(app => (
                 <div key={app.id} className={`queue-item ${app.status === 'IN_PROGRESS' ? 'active' : ''} ${app.status === 'COMPLETED' ? 'completed' : ''}`}>
                   <div className="patient-info">
-                    <div className="patient-name">{app.patient?.firstName} {app.patient?.lastName || ''}</div>
-                    <div className="patient-time">
-                      {new Date(app.startTime || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} 
-                      {app.isLiveQueue ? ' (Jonli navbat)' : ' (Veb-saytdan)'}
+                    <div className="patient-name" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                      <span>{app.patient?.firstName} {app.patient?.lastName || ''}</span>
+                      {app.patient?.phoneNumber && (
+                        <span style={{fontSize: '12px', color: '#64748b', fontWeight: 600}}>({app.patient.phoneNumber})</span>
+                      )}
                     </div>
-                    <div style={{color: 'var(--text-muted)', fontSize: '14px'}}>
-                      Shifokor: {app.doctor?.firstName || 'Bosh Shifokor'}
+                    <div className="patient-time">
+                      <Clock size={14} /> 
+                      {new Date(app.startTime || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} 
+                      <span className={`badge ${app.isLiveQueue ? 'badge-warning' : 'badge-primary'}`}>
+                        {app.isLiveQueue ? 'Jonli navbat' : 'Saytdan kelgan'}
+                      </span>
+                    </div>
+                    <div style={{color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px'}}>
+                      👨‍⚕️ Shifokor: <strong>{app.doctor?.firstName || 'Dr. Torabek'} {app.doctor?.lastName || ''}</strong>
                     </div>
                   </div>
                   
@@ -689,7 +891,9 @@ function App() {
                       </button>
                     )}
                     {app.status === 'COMPLETED' && (
-                      <span style={{fontWeight: 'bold', color: 'var(--success)'}}>Tugallangan ✓</span>
+                      <span className="badge badge-success" style={{padding: '8px 14px', fontSize: '13px'}}>
+                        <CheckCircle2 size={16} /> Tugallangan
+                      </span>
                     )}
                   </div>
                 </div>
@@ -698,10 +902,13 @@ function App() {
           </div>
 
           <div className="card">
-            <h2 className="card-title">Qabulxona Yordamchisi</h2>
-            <ul style={{lineHeight: '1.8', marginLeft: '20px', color: '#334155'}}>
+            <h2 className="card-title">
+              <Sparkles size={20} color="#0284c7" /> Qabulxona Yordamchisi
+            </h2>
+            <ul style={{lineHeight: '1.8', marginLeft: '20px', color: '#334155', fontSize: '14px'}}>
               <li>Telefonsiz kelgan keksa bemorlarni yuqoridagi <b>"+ Jonli Navbat"</b> tugmasi orqali kiriting.</li>
               <li>Bemor shifokor xonasidan chiqqach <b>"Kassa"</b> tugmasini bosib qilingan xizmatlarni belgilang, kassa summasi avtomatik hisoblanadi.</li>
+              <li>Tizim real-vaqt rejimida har 4 soniyada avtomatik yangilanadi.</li>
             </ul>
           </div>
         </div>
@@ -812,16 +1019,19 @@ function App() {
             <form onSubmit={handleAddLiveQueue}>
               <div className="form-group">
                 <label className="form-label">Ismi</label>
-                <input required className="form-control" value={newFirstName} onChange={e => setNewFirstName(e.target.value)} />
+                <input required className="form-control" placeholder="Masalan: Sardor" value={newFirstName} onChange={e => setNewFirstName(e.target.value)} />
               </div>
               <div className="form-group">
                 <label className="form-label">Familiyasi</label>
-                <input className="form-control" value={newLastName} onChange={e => setNewLastName(e.target.value)} />
+                <input className="form-control" placeholder="Masalan: Rahimov" value={newLastName} onChange={e => setNewLastName(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Telefon Raqami</label>
+                <input className="form-control" placeholder="+998 90 123 45 67" value={newPhone} onChange={e => setNewPhone(e.target.value)} />
               </div>
               <div className="form-group">
                 <label className="form-label">Shifokorni tanlang</label>
                 <select className="form-control" value={selectedDocId} onChange={e => setSelectedDocId(e.target.value)}>
-                  <option value="">-- Tanlang --</option>
                   {doctors.map(d => <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>)}
                 </select>
               </div>

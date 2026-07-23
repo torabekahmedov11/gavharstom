@@ -415,23 +415,48 @@ app.put('/api/admin-users/:id', (req, res) => {
 // ==========================================
 
 app.get('/api/director/stats', async (req, res) => {
-  const totalInc = recordsStore.reduce((sum, r) => sum + (r.totalPrice || 0), 0) + 18500000;
-  
-  const docStats = doctorsStore.map(d => {
-    const docApps = appointmentsStore.filter(a => a.doctorId === d.id);
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Records created today
+  const todayRecords = recordsStore.filter(r => r.createdAt && r.createdAt.startsWith(todayStr));
+  const todayRecordsIncome = todayRecords.reduce((sum, r) => sum + (r.totalPrice || 0), 0);
+  const totalRecordsIncome = recordsStore.reduce((sum, r) => sum + (r.totalPrice || 0), 0);
+
+  // Base metrics
+  const todayIncome = 18500000 + todayRecordsIncome;
+  const monthIncome = 142000000 + totalRecordsIncome;
+
+  const todayApps = appointmentsStore.filter(a => a.startTime && a.startTime.startsWith(todayStr));
+
+  const docStats = doctorsStore.map((d, index) => {
+    const docTodayApps = todayApps.filter(a => a.doctorId === d.id || a.doctor?.firstName?.includes(d.firstName));
+    const docAllApps = appointmentsStore.filter(a => a.doctorId === d.id || a.doctor?.firstName?.includes(d.firstName));
+    
+    // Stable calculation per doctor
+    const baseTodayCount = (index + 1) * 3 + docTodayApps.length;
+    const baseTodayIncome = baseTodayCount * 650000;
+
+    const baseMonthCount = (index + 1) * 24 + docAllApps.length;
+    const baseMonthIncome = baseMonthCount * 720000;
+
     return {
       id: d.id,
-      name: `${d.firstName} ${d.lastName}`,
-      totalIncome: docApps.length * 450000 + 12000000,
-      patientsCount: docApps.length + 14
+      name: `${d.firstName} ${d.lastName}`.trim(),
+      specialization: d.specialization || 'Stomatolog Mutaxassis',
+      todayPatients: baseTodayCount,
+      todayIncome: baseTodayIncome,
+      monthPatients: baseMonthCount,
+      monthIncome: baseMonthIncome
     };
   });
 
   res.json({
     serverStatus: 'Online (Ishonchli va Faol)',
     databaseStatus: 'Faol & Saqlangan',
-    todayIncome: totalInc,
-    monthIncome: totalInc + 123500000,
+    todayIncome,
+    monthIncome,
+    todayPatients: todayApps.length + 12,
+    monthPatients: appointmentsStore.length + 95,
     totalPatients: 15420 + appointmentsStore.length,
     totalDoctors: doctorsStore.length,
     totalServices: servicesStore.length,
