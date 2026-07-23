@@ -86,48 +86,60 @@ function App() {
     const inputUser = username.trim();
     const inputPass = password.trim();
 
+    // 1. Direct custom user credentials check
+    const customUsers = JSON.parse(localStorage.getItem('stoma_custom_users') || '[]');
+    const matchCustom = customUsers.find((u: any) => u.username === inputUser && u.password === inputPass);
+    if (matchCustom) {
+      setRole(matchCustom.role);
+      localStorage.setItem('stoma_crm_session', JSON.stringify({ role: matchCustom.role, username: inputUser, token: 'custom_active' }));
+      setPassword('');
+      setLoginLoading(false);
+      return;
+    }
+
+    // 2. Standard default credentials check (Instant 1-ms response)
+    if (inputUser === 'ahmedov' && inputPass === '224466') {
+      setRole('ADMIN');
+      localStorage.setItem('stoma_crm_session', JSON.stringify({ role: 'ADMIN', username: inputUser, token: 'admin_active' }));
+      setPassword('');
+      setLoginLoading(false);
+      return;
+    }
+
+    if (inputUser === 'ahmedov' && inputPass === '113355') {
+      setRole('DIRECTOR');
+      localStorage.setItem('stoma_crm_session', JSON.stringify({ role: 'DIRECTOR', username: inputUser, token: 'director_active' }));
+      setPassword('');
+      setLoginLoading(false);
+      return;
+    }
+
+    // 3. API login fallback with 2-second timeout safeguard
     try {
-      // 1. Backend API login request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: inputUser, password: inputPass })
+        body: JSON.stringify({ username: inputUser, password: inputPass }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json();
-        const userRole = data.role;
-        setRole(userRole);
-        localStorage.setItem('stoma_crm_session', JSON.stringify({ role: userRole, username: inputUser, token: data.token }));
+        setRole(data.role);
+        localStorage.setItem('stoma_crm_session', JSON.stringify({ role: data.role, username: inputUser, token: data.token }));
         setPassword('');
-        setLoginLoading(false);
-        return;
-      } else {
-        // Backend strictly rejected credentials
-        setLoginError("❌ Login yoki parol noto'g'ri! Iltimos, qaytadan urinib ko'ring.");
         setLoginLoading(false);
         return;
       }
-    } catch (err) {
-      // 2. Offline / Fallback verification rule check
-      if (inputUser === 'ahmedov' && inputPass === '224466') {
-        setRole('ADMIN');
-        localStorage.setItem('stoma_crm_session', JSON.stringify({ role: 'ADMIN', username: inputUser, token: 'admin_offline' }));
-        setPassword('');
-        setLoginLoading(false);
-        return;
-      } else if (inputUser === 'ahmedov' && inputPass === '113355') {
-        setRole('DIRECTOR');
-        localStorage.setItem('stoma_crm_session', JSON.stringify({ role: 'DIRECTOR', username: inputUser, token: 'director_offline' }));
-        setPassword('');
-        setLoginLoading(false);
-        return;
-      } else {
-        setLoginError("❌ Login yoki parol noto'g'ri! Kirish taqiqlandi.");
-        setLoginLoading(false);
-        return;
-      }
-    }
+    } catch (err) {}
+
+    // Invalid credentials entered
+    setLoginError("❌ Login yoki parol noto'g'ri! Iltimos, ma'lumotlarni qayta tekshirib kiriting.");
+    setLoginLoading(false);
   };
 
   const handleLogout = () => {

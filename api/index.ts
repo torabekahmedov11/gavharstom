@@ -7,10 +7,15 @@ dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
-const port = process.env.PORT || 3000;
-
-import { startBot } from './bot';
-startBot(prisma);
+// Start Telegram bot only in local dev environment (not inside Vercel serverless)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  try {
+    const { startBot } = require('./bot');
+    startBot(prisma);
+  } catch (e) {
+    console.log("Bot initialization skipped for serverless execution.");
+  }
+}
 
 app.use(cors());
 app.use(express.json());
