@@ -1,111 +1,130 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Float, Sparkles } from '@react-three/drei';
+import { Float, Sparkles, MeshTransmissionMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 
 export default function Gavhar3D() {
-  const groupRef = useRef<THREE.Group>(null);
-  const crystalRef = useRef<THREE.Mesh>(null);
+  const toothGroupRef = useRef<THREE.Group>(null);
+  const gemRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.4;
-      groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+    const t = state.clock.getElapsedTime();
+    if (toothGroupRef.current) {
+      toothGroupRef.current.rotation.y = t * 0.5;
+      toothGroupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
     }
-    if (crystalRef.current) {
-      crystalRef.current.rotation.y = -state.clock.elapsedTime * 0.8;
-      crystalRef.current.position.y = 2.2 + Math.sin(state.clock.elapsedTime * 2) * 0.15;
+    if (gemRef.current) {
+      gemRef.current.rotation.y = -t * 0.9;
+      gemRef.current.position.y = 2.4 + Math.sin(t * 2) * 0.2;
     }
-  });
-
-  // Dental Tooth Enamel Material (Shiny White/Pearl with Cyan Glow)
-  const enamelMaterial = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color('#ffffff'),
-    roughness: 0.1,
-    metalness: 0.05,
-    transmission: 0.35,
-    thickness: 1.2,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.05,
-    reflectivity: 0.9,
-    ior: 1.5,
-    emissive: new THREE.Color('#e0f2fe'),
-    emissiveIntensity: 0.3,
-  });
-
-  const rootMaterial = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color('#f0f9ff'),
-    roughness: 0.25,
-    metalness: 0.0,
-    transmission: 0.2,
-    clearcoat: 0.5,
-  });
-
-  const gemMaterial = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color('#38bdf8'),
-    roughness: 0.0,
-    metalness: 0.1,
-    transmission: 0.9,
-    thickness: 2.0,
-    clearcoat: 1.0,
-    emissive: new THREE.Color('#0284c7'),
-    emissiveIntensity: 0.6,
+    if (ringRef.current) {
+      ringRef.current.rotation.z = t * 0.3;
+      ringRef.current.rotation.x = Math.PI / 2 + Math.sin(t * 0.5) * 0.2;
+    }
   });
 
   return (
     <>
-      <ambientLight intensity={1.5} />
-      <directionalLight position={[10, 15, 10]} intensity={2.5} color="#ffffff" />
-      <directionalLight position={[-10, -10, -10]} intensity={1.5} color="#38bdf8" />
-      <pointLight position={[0, 2, 0]} intensity={3} color="#0ea5e9" distance={5} />
+      <ambientLight intensity={1.8} />
+      <directionalLight position={[10, 20, 15]} intensity={3.0} color="#ffffff" />
+      <directionalLight position={[-10, -10, -10]} intensity={2.0} color="#38bdf8" />
+      <pointLight position={[0, 2, 0]} intensity={4.5} color="#0ea5e9" distance={6} />
+      <pointLight position={[0, -2, 0]} intensity={3} color="#06b6d4" distance={5} />
 
-      <Float speed={2.5} rotationIntensity={0.5} floatIntensity={1.5}>
-        <group ref={groupRef} position={[0, -0.2, 0]} scale={1.1}>
+      <Float speed={2.0} rotationIntensity={0.6} floatIntensity={1.2}>
+        <group ref={toothGroupRef} position={[0, -0.3, 0]} scale={1.15}>
           
-          {/* TOOTH CROWN (Main Body) */}
-          <mesh position={[0, 0.6, 0]} material={enamelMaterial}>
-            <cylinderGeometry args={[1.3, 0.9, 1.4, 32]} />
+          {/* TOOTH CROWN (Smooth Anatomical Porcelain Tooth Body) */}
+          <mesh position={[0, 0.7, 0]}>
+            <cylinderGeometry args={[1.35, 0.85, 1.5, 64]} />
+            <MeshTransmissionMaterial 
+              backside
+              samples={6}
+              thickness={1.5}
+              chromaticAberration={0.08}
+              anisotropy={0.2}
+              distortion={0.15}
+              distortionScale={0.4}
+              temporalDistortion={0.1}
+              color="#f0f9ff"
+              transmission={0.8}
+              opacity={1}
+              roughness={0.08}
+              ior={1.5}
+              clearcoat={1.0}
+            />
           </mesh>
 
-          {/* CROWN TOP CUSPS (4 rounded anatomical bumps for Tooth) */}
-          <mesh position={[0.5, 1.35, 0.5]} material={enamelMaterial}>
-            <sphereGeometry args={[0.45, 16, 16]} />
-          </mesh>
-          <mesh position={[-0.5, 1.35, 0.5]} material={enamelMaterial}>
-            <sphereGeometry args={[0.45, 16, 16]} />
-          </mesh>
-          <mesh position={[0.5, 1.35, -0.5]} material={enamelMaterial}>
-            <sphereGeometry args={[0.45, 16, 16]} />
-          </mesh>
-          <mesh position={[-0.5, 1.35, -0.5]} material={enamelMaterial}>
-            <sphereGeometry args={[0.45, 16, 16]} />
+          {/* 4 ANATOMICAL TOOTH CUSPS (Top Bumps with Enamel Gloss) */}
+          {[
+            [0.55, 1.45, 0.55],
+            [-0.55, 1.45, 0.55],
+            [0.55, 1.45, -0.55],
+            [-0.55, 1.45, -0.55]
+          ].map((pos, i) => (
+            <mesh key={i} position={pos as [number, number, number]}>
+              <sphereGeometry args={[0.48, 32, 32]} />
+              <MeshTransmissionMaterial 
+                color="#ffffff"
+                roughness={0.05}
+                transmission={0.85}
+                thickness={1.2}
+                clearcoat={1.0}
+                ior={1.52}
+              />
+            </mesh>
+          ))}
+
+          {/* TOOTH ROOT 1 (Left Curved Root) */}
+          <mesh position={[-0.45, -0.65, 0]} rotation={[0, 0, 0.18]}>
+            <coneGeometry args={[0.48, 1.5, 32]} />
+            <meshPhysicalMaterial 
+              color="#e0f2fe" 
+              roughness={0.15} 
+              metalness={0.1}
+              clearcoat={0.8}
+              transmission={0.4}
+            />
           </mesh>
 
-          {/* TOOTH ROOT 1 (Left Tapered Root) */}
-          <mesh position={[-0.45, -0.6, 0]} rotation={[0, 0, 0.15]} material={rootMaterial}>
-            <coneGeometry args={[0.45, 1.4, 16]} />
+          {/* TOOTH ROOT 2 (Right Curved Root) */}
+          <mesh position={[0.45, -0.65, 0]} rotation={[0, 0, -0.18]}>
+            <coneGeometry args={[0.48, 1.5, 32]} />
+            <meshPhysicalMaterial 
+              color="#e0f2fe" 
+              roughness={0.15} 
+              metalness={0.1}
+              clearcoat={0.8}
+              transmission={0.4}
+            />
           </mesh>
 
-          {/* TOOTH ROOT 2 (Right Tapered Root) */}
-          <mesh position={[0.45, -0.6, 0]} rotation={[0, 0, -0.15]} material={rootMaterial}>
-            <coneGeometry args={[0.45, 1.4, 16]} />
+          {/* GAVHAR DIAMOND CRYSTAL (Floating above Tooth Crown) */}
+          <mesh ref={gemRef} position={[0, 2.4, 0]}>
+            <octahedronGeometry args={[0.55, 2]} />
+            <MeshTransmissionMaterial 
+              color="#0284c7"
+              emissive="#38bdf8"
+              emissiveIntensity={0.8}
+              transmission={0.95}
+              thickness={2.5}
+              roughness={0.0}
+              ior={2.4}
+              chromaticAberration={0.15}
+            />
           </mesh>
 
-          {/* GAVHAR DIAMOND GEM (Floating above Tooth Crown) */}
-          <mesh ref={crystalRef} position={[0, 2.2, 0]} material={gemMaterial}>
-            <octahedronGeometry args={[0.5, 0]} />
-          </mesh>
-
-          {/* Glowing Aura Ring around Tooth */}
-          <mesh position={[0, 0.6, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[1.8, 0.03, 16, 100]} />
-            <meshBasicMaterial color="#38bdf8" transparent opacity={0.6} />
+          {/* Orbiting Laser Protection Ring */}
+          <mesh ref={ringRef} position={[0, 0.7, 0]}>
+            <torusGeometry args={[2.0, 0.035, 16, 120]} />
+            <meshBasicMaterial color="#38bdf8" transparent opacity={0.85} />
           </mesh>
 
         </group>
 
-        {/* Floating Sparkles */}
-        <Sparkles count={70} scale={7} size={5} speed={0.6} color="#0ea5e9" />
+        {/* Floating Dental Sparkles */}
+        <Sparkles count={80} scale={7.5} size={5} speed={0.8} color="#06b6d4" />
       </Float>
     </>
   );

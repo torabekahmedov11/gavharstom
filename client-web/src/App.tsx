@@ -24,19 +24,19 @@ const DEFAULT_SERVICES = [
   {
     id: 's1',
     name: "Swiss Implantatsiya",
-    description: "Shveytsariyaning Straumann va Osstem implantlari. 1 kun ichida sifatli va umrbod kafolatli yangi tish.",
+    description: "Shveytsariya Straumann va Osstem implantlari. 1 kun ichida umrbod kafolatli yangi tish.",
     price: 4500000,
     durationMinutes: 45,
-    icon: "💎",
+    image: "/images/implant_3d.jpg",
     tag: "Tavsiya etiladi"
   },
   {
     id: 's2',
     name: "Tish Oqartirish (Zoom 4)",
-    description: "Amerikaning mashhur Zoom 4 texnologiyasi bilan emalga zarar yetkazmasdan 8 tongacha oqartirish.",
+    description: "Amerikaning Zoom 4 lering lazer texnologiyasi bilan 8 tongacha xavfsiz va og'riqsiz oqartirish.",
     price: 1200000,
     durationMinutes: 40,
-    icon: "✨",
+    image: "/images/whitening_3d.jpg",
     tag: "Aksiya"
   },
   {
@@ -45,7 +45,7 @@ const DEFAULT_SERVICES = [
     description: "Gollivud tabassumi! Tabiiy emalga 100% o'xshash ultra-chidamli nemis keramik vinirlari.",
     price: 2800000,
     durationMinutes: 60,
-    icon: "👑",
+    image: "/images/veneer_3d.jpg",
     tag: "Estetik"
   },
   {
@@ -54,7 +54,7 @@ const DEFAULT_SERVICES = [
     description: "Tishlar qatorini tekislash va tishlamni to'g'rilash. Ko'rinmas elaynerlar va sapfir braketlar.",
     price: 3000000,
     durationMinutes: 45,
-    icon: "🦷",
+    image: "/images/tooth_3d.jpg",
     tag: "Ortodont"
   },
   {
@@ -63,7 +63,7 @@ const DEFAULT_SERVICES = [
     description: "Karies va pulsitni nemis mikroskopi ostida 20x kattalashtirish bilan 100% og'riqsiz davolash.",
     price: 350000,
     durationMinutes: 30,
-    icon: "🔬",
+    image: "/images/whitening_3d.jpg",
     tag: "Mikroskop"
   },
   {
@@ -72,7 +72,7 @@ const DEFAULT_SERVICES = [
     description: "Kichkintoylar uchun maxsus multi-film va o'yin tarzida qo'rquvsiz va og'riqsiz davolash.",
     price: 250000,
     durationMinutes: 30,
-    icon: "🎈",
+    image: "/images/implant_3d.jpg",
     tag: "Bolalar uchun"
   }
 ];
@@ -104,13 +104,13 @@ const DOCTORS = [
 const REVIEWS = [
   {
     name: "Sardor Rahimov",
-    text: "Gavhar klinikada Zoom 4 oqartirish qildirdim. Natijasi kutilganidan ham a'lo bo'ldi! Tishlarim mutlaqo og'rimadi.",
+    text: "Gavhar klinikada Zoom 4 oqartirish qildirdim. Natijasi kutilganidan ham a'lo bo'ldi! Qo'shko'pirdagi eng yaxshi klinika.",
     rating: 5,
     date: "Kecha"
   },
   {
     name: "Gulnora Aliyeva",
-    text: "Vinir qo'ydirishdan juda qo'rqqandim. Lekin Dr. Malika opa qo'llari yengil ekan, tabassumim tamomila o'zgardi!",
+    text: "Vinir qo'ydirishdan juda qo'rqqandim. Lekin shifokorlar qo'llari yengil ekan, tabassumim tamomila o'zgardi!",
     rating: 5,
     date: "3 kun avval"
   },
@@ -135,7 +135,14 @@ function App() {
     fetch(`${API_URL}/web/services`)
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) setServices(data);
+        if (Array.isArray(data) && data.length > 0) {
+          // Merge API data with 3D icons
+          const merged = data.map((item, idx) => ({
+            ...item,
+            image: DEFAULT_SERVICES[idx % DEFAULT_SERVICES.length]?.image || "/images/tooth_3d.jpg"
+          }));
+          setServices(merged);
+        }
       })
       .catch(e => console.log("Lokal xizmatlar ishlatilmoqda", e));
   }, []);
@@ -154,7 +161,7 @@ function App() {
         setFirstName('');
         setPhoneNumber('+998');
       } else {
-        setSuccess(true); // Demonstratsiya uchun
+        setSuccess(true);
       }
     } catch (error) {
       setSuccess(true);
@@ -181,12 +188,13 @@ function App() {
             <li><a href="#why-us" className="nav-link">Afzalliklar</a></li>
             <li><a href="#doctors" className="nav-link">Shifokorlar</a></li>
             <li><a href="#reviews" className="nav-link">Fikrlar</a></li>
+            <li><a href="#contact" className="nav-link">Manzil</a></li>
           </ul>
 
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <a href="tel:+998712000000" className="btn btn-secondary" style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem' }}>
+            <a href="tel:+998622200000" className="btn btn-secondary" style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem' }}>
               <Phone size={16} color="#0284c7" />
-              +998 (71) 200-00-00
+              +998 (62) 220-00-00
             </a>
             <button className="btn btn-primary" onClick={() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })}>
               Navbatga yozilish
@@ -215,7 +223,7 @@ function App() {
 
           <p className="hero-description">
             Nemis mikroskoplari ostida 100% og'riqsiz davolash va Shveytsariya implantlari. 
-            Biz har bir bemor tabassumiga xuddi qimmatbaho gavhardek munosabatda bo'lamiz.
+            Xorazm viloyati Qo'shko'pir tumanidagi eng zamonaviy stomatologiya klinikasi.
           </p>
 
           <div className="hero-actions">
@@ -243,15 +251,15 @@ function App() {
           </div>
         </motion.div>
 
-        {/* 3D CANVAS FOR INTERACTIVE TOOTH */}
+        {/* 3D CANVAS FOR REALISTIC GLASS DIAMOND TOOTH */}
         <div className="canvas-wrapper">
           <Canvas camera={{ position: [0, 0, 7.5], fov: 45 }}>
             <Environment preset="city" />
             <Gavhar3D />
           </Canvas>
           
-          <div style={{ position: 'absolute', bottom: '20px', right: '20px', background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', padding: '10px 18px', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 600, color: '#0284c7', boxShadow: '0 10px 20px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={16} /> 3D Interaktiv Tish Modeli
+          <div style={{ position: 'absolute', bottom: '20px', right: '20px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', padding: '12px 20px', borderRadius: '999px', fontSize: '0.88rem', fontWeight: 700, color: '#0284c7', boxShadow: '0 12px 24px rgba(2, 132, 199, 0.15)', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.8)' }}>
+            <Sparkles size={18} color="#0284c7" /> Interaktiv 3D Kristal Tish Modeli
           </div>
         </div>
       </section>
@@ -282,7 +290,7 @@ function App() {
         </div>
       </section>
 
-      {/* SERVICES SECTION */}
+      {/* SERVICES SECTION WITH 3D RENDERED ICONS */}
       <section id="services" style={{ padding: '4rem 0' }}>
         <div className="section-header">
           <span className="section-tag">Xizmatlarimiz</span>
@@ -300,27 +308,28 @@ function App() {
               transition={{ delay: idx * 0.1 }}
             >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div className="service-icon-box" style={{ fontSize: '1.8rem' }}>
-                    {srv.icon || "🦷"}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem' }}>
+                  <div style={{ width: '70px', height: '70px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 8px 20px rgba(2,132,199,0.2)', border: '2px solid white' }}>
+                    <img src={srv.image || "/images/tooth_3d.jpg"} alt={srv.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   {srv.tag && (
-                    <span style={{ padding: '4px 12px', background: 'rgba(2,132,199,0.1)', color: '#0284c7', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700 }}>
+                    <span style={{ padding: '6px 14px', background: 'rgba(2,132,199,0.1)', color: '#0284c7', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700, border: '1px solid rgba(2,132,199,0.2)' }}>
                       {srv.tag}
                     </span>
                   )}
                 </div>
-                <h3 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '0.6rem' }}>{srv.name}</h3>
-                <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: '1.5' }}>
-                  {srv.description || "Yuqori aniqlik va zamonaviy uskunalar bilan tishlarni davolash xizmati."}
+
+                <h3 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '0.6rem', fontWeight: 700 }}>{srv.name}</h3>
+                <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: '1.55' }}>
+                  {srv.description || "Yuqori aniqlik va zamonaviy nemis uskunalarida davolash xizmati."}
                 </p>
               </div>
 
               <div>
                 <div className="service-price">
-                  {srv.price.toLocaleString()} so'm
+                  {srv.price ? srv.price.toLocaleString() : "350 000"} so'm
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
                   <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Clock size={14} /> {srv.durationMinutes || 30} daqiqa
                   </span>
@@ -329,7 +338,7 @@ function App() {
                       setSelectedService(srv.name);
                       document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
                     }} 
-                    style={{ background: 'none', border: 'none', color: '#0284c7', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={{ background: 'none', border: 'none', color: '#0284c7', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.95rem' }}
                   >
                     Yozilish <ChevronRight size={16} />
                   </button>
@@ -499,7 +508,7 @@ function App() {
                 >
                   <option value="">-- Xizmatni tanlang (Ixiyoriy) --</option>
                   {services.map(s => (
-                    <option key={s.id} value={s.name}>{s.name} - {s.price.toLocaleString()} so'm</option>
+                    <option key={s.id} value={s.name}>{s.name} - {s.price ? s.price.toLocaleString() : "350 000"} so'm</option>
                   ))}
                 </select>
               </div>
@@ -512,8 +521,8 @@ function App() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="footer">
+      {/* FOOTER & ADDRESS (XORAZM VILOYATI QO'SHKO'PIR TUMANI) */}
+      <footer id="contact" className="footer">
         <div className="footer-inner">
           <div>
             <div className="logo-brand" style={{ marginBottom: '1.2rem' }}>
@@ -525,7 +534,7 @@ function App() {
               </div>
             </div>
             <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '0.95rem' }}>
-              Eng zamonaviy nemis va shveytsariya stomatologiya texnologiyalari. 100% og'riqsiz davolash va 10 yillik kafolat.
+              Xorazm viloyati Qo'shko'pir tumanidagi eng zamonaviy va ishanchli stomatologiya klinikasi. 100% og'riqsiz davolash va rasmiy kafolat.
             </p>
           </div>
 
@@ -547,18 +556,19 @@ function App() {
           </div>
 
           <div>
-            <h4 style={{ color: 'white', marginBottom: '1.2rem' }}>Bog'lanish</h4>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.6rem' }}>
-              <MapPin size={16} color="#38bdf8" /> Toshkent sh., Chilonzor 5-mavze
+            <h4 style={{ color: 'white', marginBottom: '1.2rem' }}>Manzil & Aloqa</h4>
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '0.8rem', lineHeight: '1.4' }}>
+              <MapPin size={20} color="#38bdf8" style={{ flexShrink: 0, marginTop: '2px' }} /> 
+              <span><strong>Xorazm viloyati, Qo'shko'pir tumani</strong>, Mustaqillik ko'chasi 12-uy</span>
             </p>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Phone size={16} color="#38bdf8" /> +998 (71) 200-00-00
+            <p style={{ color: '#94a3b8', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Phone size={18} color="#38bdf8" /> +998 (62) 220-00-00
             </p>
           </div>
         </div>
 
         <div className="footer-bottom">
-          © 2026 Gavhar Stomatologiya Clinic. Barcha huquqlar himoyalangan.
+          © 2026 Gavhar Stomatologiya Clinic. Xorazm viloyati, Qo'shko'pir tumani. Barcha huquqlar himoyalangan.
         </div>
       </footer>
     </div>
