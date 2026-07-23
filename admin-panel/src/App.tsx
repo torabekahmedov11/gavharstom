@@ -157,17 +157,25 @@ function App() {
         fetch(`${API_URL}/services`),
         fetch(`${API_URL}/doctors`)
       ]);
-      setAppointments(await appRes.json());
-      setServices(await srvRes.json());
-      setDoctors(await docRes.json());
+
+      const appData = await appRes.json();
+      const srvData = await srvRes.json();
+      const docData = await docRes.json();
+
+      if (Array.isArray(appData)) setAppointments(appData);
+      if (Array.isArray(srvData)) setServices(srvData);
+      if (Array.isArray(docData)) setDoctors(docData);
 
       if (role === 'DIRECTOR') {
         const [statRes, userRes] = await Promise.all([
           fetch(`${API_URL}/director/stats`),
           fetch(`${API_URL}/admin-users`)
         ]);
-        setStats(await statRes.json());
-        setUsers(await userRes.json());
+        const statData = await statRes.json();
+        const userData = await userRes.json();
+
+        if (statData && !statData.error) setStats(statData);
+        if (Array.isArray(userData)) setUsers(userData);
       }
     } catch (e) {
       console.error("Ma'lumot yuklashda xato:", e);
