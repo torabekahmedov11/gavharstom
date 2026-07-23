@@ -320,11 +320,14 @@ app.post('/api/web/book', async (req, res) => {
       return res.status(400).json({ error: 'Shifokor topilmadi' });
     }
 
+    const now = new Date();
     const appointment = await prisma.appointment.create({
       data: {
         patientId: patient.id,
         doctorId: firstDoctor.id,
-        startTime: new Date(),
+        date: now,
+        startTime: now,
+        endTime: new Date(now.getTime() + 30 * 60000), // 30 mins later
         status: 'PENDING',
         isLiveQueue: true // Vebdan kelganini bildirish uchun (yoki isWebQueue qilsa ham bo'ladi)
       }
