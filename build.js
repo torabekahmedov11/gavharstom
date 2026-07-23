@@ -31,8 +31,7 @@ try {
   run('npm install', path.join(__dirname, 'client-web'));
   run('npm run build', path.join(__dirname, 'client-web'));
 
-  // 3. Install dependencies for Backend (postinstall will run prisma generate automatically)
-  run('npm install', path.join(__dirname, 'backend'));
+  // 3. API dependencies are handled by root postinstall, so we skip it here.
 
   // 4. Merge Builds into 'public' folder
   const publicDir = path.join(__dirname, 'public');

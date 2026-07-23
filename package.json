@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "install:all": "cd admin-panel && npm install && cd ../client-web && npm install && cd ../backend && npm install",
+    "postinstall": "cd api && npm install && npx prisma generate",
+    "install:all": "cd admin-panel && npm install && cd ../client-web && npm install && cd ../api && npm install",
     "build": "node build.js"
   }
 }
