@@ -35,10 +35,9 @@ try {
 
   // 4. Merge Builds into 'public' folder
   const publicDir = path.join(__dirname, 'public');
-  if (fs.existsSync(publicDir)) {
-    fs.rmSync(publicDir, { recursive: true, force: true });
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
   }
-  fs.mkdirSync(publicDir);
 
   // Copy client-web build to root of public
   console.log('Copying client-web to /public');
