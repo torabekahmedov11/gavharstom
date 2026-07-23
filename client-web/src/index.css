@@ -73,6 +73,8 @@ h1, h2, h3, h4 {
   align-items: center;
   gap: 0.6rem;
   text-decoration: none;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .logo-icon {
@@ -85,17 +87,39 @@ h1, h2, h3, h4 {
   justify-content: center;
   color: white;
   box-shadow: 0 6px 16px rgba(2, 132, 199, 0.3);
+  flex-shrink: 0;
 }
 
 .logo-text {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
+  white-space: nowrap;
+  letter-spacing: -0.5px;
 }
 
 .logo-text span {
   color: var(--primary);
+}
+
+.nav-actions {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #0f172a;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-links {
@@ -521,8 +545,17 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 768px) {
-  .nav-links {
-    display: none;
+  .nav-links, .nav-phone-btn, .nav-book-btn {
+    display: none !important;
+  }
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+  .navbar-inner {
+    padding: 0.6rem 1rem;
+  }
+  .logo-text {
+    font-size: 1.05rem;
   }
   .mobile-bottom-bar {
     display: block;
@@ -547,5 +580,8 @@ h1, h2, h3, h4 {
   }
   .hero-actions .btn {
     width: 100%;
+  }
+  .logo-text span {
+    display: none;
   }
 }

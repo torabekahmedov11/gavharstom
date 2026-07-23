@@ -58,7 +58,7 @@ const DEFAULT_SERVICES = [
   },
   {
     id: 's4',
-    name: "Ortodontiya (Braketlar)",
+    name: "Ortodontiya (Braketlar & Elaynerlar)",
     description: "Tishlar qatorini tekislash va tishlamni to'g'rilash. Ko'rinmas elaynerlar va sapfir braketlar.",
     price: 3000000,
     durationMinutes: 45,
@@ -68,7 +68,7 @@ const DEFAULT_SERVICES = [
   },
   {
     id: 's5',
-    name: "Kavitet Davolash (Mikroskop)",
+    name: "Karies Davolash (Mikroskop)",
     description: "Karies va pulsitni nemis mikroskopi ostida 20x kattalashtirish bilan 100% og'riqsiz davolash.",
     price: 350000,
     durationMinutes: 30,
@@ -88,8 +88,9 @@ const DEFAULT_SERVICES = [
   }
 ];
 
-const DOCTORS = [
+const DEFAULT_DOCTORS = [
   {
+    id: 'd1',
     name: "Dr. Torabek Ahmedov",
     role: "Bosh Shifokor, Implantolog-Xirurg",
     experience: "12 Yillik Tajriba",
@@ -97,18 +98,20 @@ const DOCTORS = [
     image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400"
   },
   {
+    id: 'd2',
     name: "Dr. Malika Umurova",
     role: "Estetik Stomatolog, Vinir Mutaxassisi",
     experience: "9 Yillik Tajriba",
     rating: "4.9",
-    image: "https://images.unsplash.com/photo-1594824813572-c5c065f492a3?auto=format&fit=crop&q=80&w=400"
+    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400"
   },
   {
+    id: 'd3',
     name: "Dr. Jamshid Karimov",
     role: "Ortodont-Gnatolog",
     experience: "10 Yillik Tajriba",
     rating: "5.0",
-    image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=400"
+    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400"
   }
 ];
 
@@ -127,7 +130,7 @@ const REVIEWS = [
   },
   {
     name: "Jasur Ro'ziyev",
-    text: "Implantologiya bo'yicha eng zo'r klinika. Straumann implantini 15 minutda qo meb berishdi. Rahmat!",
+    text: "Implantologiya bo'yicha eng zo'r klinika. Straumann implantini 15 minutda qo'yib berishdi. Rahmat!",
     rating: 5,
     date: "Bir hafta avval"
   }
@@ -135,6 +138,7 @@ const REVIEWS = [
 
 function App() {
   const [services, setServices] = useState<any[]>(DEFAULT_SERVICES);
+  const [doctors, setDoctors] = useState<any[]>(DEFAULT_DOCTORS);
   const [selectedService, setSelectedService] = useState('');
   const [firstName, setFirstName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('+998');
@@ -158,6 +162,23 @@ function App() {
         }
       })
       .catch(e => console.log("Lokal xizmatlar ishlatilmoqda", e));
+
+    fetch(`${API_URL}/doctors`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((doc: any, idx: number) => ({
+            id: doc.id,
+            name: `${doc.firstName} ${doc.lastName || ''}`.trim(),
+            role: doc.specialization || "Stomatolog Mutaxassis",
+            experience: doc.experience || DEFAULT_DOCTORS[idx % DEFAULT_DOCTORS.length]?.experience || "8+ Yillik Tajriba",
+            rating: doc.rating || DEFAULT_DOCTORS[idx % DEFAULT_DOCTORS.length]?.rating || "5.0",
+            image: doc.image || DEFAULT_DOCTORS[idx % DEFAULT_DOCTORS.length]?.image
+          }));
+          setDoctors(mapped);
+        }
+      })
+      .catch(e => console.log("Lokal shifokorlar ishlatilmoqda", e));
   }, []);
 
   const handleBooking = async (e: React.FormEvent) => {
@@ -192,7 +213,7 @@ function App() {
               <Stethoscope size={22} />
             </div>
             <div className="logo-text">
-              GAVHAR <span>DENTAL</span>
+              GAVHAR <span>STOMATOLOGIYA</span>
             </div>
           </a>
 
@@ -204,23 +225,23 @@ function App() {
             <li><a href="#contact" className="nav-link">Manzil</a></li>
           </ul>
 
-          <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-            <a href="tel:+998622200000" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.88rem' }}>
+          <div className="nav-actions">
+            <a href="tel:+998622200000" className="btn btn-secondary nav-phone-btn">
               <Phone size={15} color="#0284c7" />
               +998 (62) 220-00-00
             </a>
             
-            <button className="btn btn-primary" onClick={() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })}>
+            <button className="btn btn-primary nav-book-btn" onClick={() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })}>
               Navbatga yozilish
             </button>
 
             {/* MOBILE MENU TOGGLE */}
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              style={{ background: 'none', border: 'none', color: '#0f172a', padding: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               className="mobile-menu-btn"
+              aria-label="Menu"
             >
-              {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
@@ -496,15 +517,22 @@ function App() {
         </div>
 
         <div className="doctors-grid">
-          {DOCTORS.map((doc, idx) => (
-            <div key={idx} className="doctor-card glass-card">
-              <img src={doc.image} alt={doc.name} className="doctor-avatar" />
+          {doctors.map((doc, idx) => (
+            <div key={doc.id || idx} className="doctor-card glass-card">
+              <img 
+                src={doc.image || "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400"} 
+                alt={doc.name} 
+                className="doctor-avatar"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name || 'Doctor')}&background=0284c7&color=fff&size=200`;
+                }}
+              />
               <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '0.3rem' }}>{doc.name}</h3>
               <p style={{ color: '#0284c7', fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.8rem' }}>{doc.role}</p>
               
               <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.82rem', color: '#64748b' }}>
-                <span>💼 {doc.experience}</span>
-                <span>⭐ {doc.rating} / 5.0</span>
+                <span>💼 {doc.experience || "8+ Yillik Tajriba"}</span>
+                <span>⭐ {doc.rating || "5.0"} / 5.0</span>
               </div>
             </div>
           ))}
@@ -515,7 +543,7 @@ function App() {
       <section id="reviews" style={{ padding: '5rem 0', background: 'rgba(255,255,255,0.7)' }}>
         <div className="section-header">
           <span className="section-tag">Bemorlarimiz Fikri</span>
-          <h2 className="section-title">15,000+ Bemorlarimiz Ishemadi</h2>
+          <h2 className="section-title">15,000+ Bemorlarimiz Ishonchi</h2>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', maxWidth: '1280px', margin: '0 auto', padding: '0 1.2rem' }}>
