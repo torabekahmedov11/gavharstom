@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Canvas } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
-import Gavhar3D from './components/Gavhar3D';
 import { 
   CheckCircle2, 
   ChevronRight, 
@@ -15,7 +12,12 @@ import {
   MapPin, 
   Stethoscope, 
   Sparkle,
-  Phone
+  Phone,
+  Zap,
+  Gem,
+  Smile,
+  Activity,
+  HeartPulse
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -27,16 +29,18 @@ const DEFAULT_SERVICES = [
     description: "Shveytsariya Straumann va Osstem implantlari. 1 kun ichida umrbod kafolatli yangi tish.",
     price: 4500000,
     durationMinutes: 45,
-    image: "/images/implant_3d.jpg",
+    icon: Gem,
+    gradient: "linear-gradient(135deg, #0284c7, #06b6d4)",
     tag: "Tavsiya etiladi"
   },
   {
     id: 's2',
     name: "Tish Oqartirish (Zoom 4)",
-    description: "Amerikaning Zoom 4 lering lazer texnologiyasi bilan 8 tongacha xavfsiz va og'riqsiz oqartirish.",
+    description: "Amerikaning Zoom 4 lazer texnologiyasi bilan 8 tongacha xavfsiz va og'riqsiz oqartirish.",
     price: 1200000,
     durationMinutes: 40,
-    image: "/images/whitening_3d.jpg",
+    icon: Zap,
+    gradient: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
     tag: "Aksiya"
   },
   {
@@ -45,7 +49,8 @@ const DEFAULT_SERVICES = [
     description: "Gollivud tabassumi! Tabiiy emalga 100% o'xshash ultra-chidamli nemis keramik vinirlari.",
     price: 2800000,
     durationMinutes: 60,
-    image: "/images/veneer_3d.jpg",
+    icon: Sparkles,
+    gradient: "linear-gradient(135deg, #06b6d4, #14b8a6)",
     tag: "Estetik"
   },
   {
@@ -54,7 +59,8 @@ const DEFAULT_SERVICES = [
     description: "Tishlar qatorini tekislash va tishlamni to'g'rilash. Ko'rinmas elaynerlar va sapfir braketlar.",
     price: 3000000,
     durationMinutes: 45,
-    image: "/images/tooth_3d.jpg",
+    icon: Smile,
+    gradient: "linear-gradient(135deg, #3b82f6, #0284c7)",
     tag: "Ortodont"
   },
   {
@@ -63,7 +69,8 @@ const DEFAULT_SERVICES = [
     description: "Karies va pulsitni nemis mikroskopi ostida 20x kattalashtirish bilan 100% og'riqsiz davolash.",
     price: 350000,
     durationMinutes: 30,
-    image: "/images/whitening_3d.jpg",
+    icon: Activity,
+    gradient: "linear-gradient(135deg, #0284c7, #38bdf8)",
     tag: "Mikroskop"
   },
   {
@@ -72,7 +79,8 @@ const DEFAULT_SERVICES = [
     description: "Kichkintoylar uchun maxsus multi-film va o'yin tarzida qo'rquvsiz va og'riqsiz davolash.",
     price: 250000,
     durationMinutes: 30,
-    image: "/images/implant_3d.jpg",
+    icon: HeartPulse,
+    gradient: "linear-gradient(135deg, #f43f5e, #fb7185)",
     tag: "Bolalar uchun"
   }
 ];
@@ -136,10 +144,11 @@ function App() {
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          // Merge API data with 3D icons
           const merged = data.map((item, idx) => ({
             ...item,
-            image: DEFAULT_SERVICES[idx % DEFAULT_SERVICES.length]?.image || "/images/tooth_3d.jpg"
+            icon: DEFAULT_SERVICES[idx % DEFAULT_SERVICES.length]?.icon || Gem,
+            gradient: DEFAULT_SERVICES[idx % DEFAULT_SERVICES.length]?.gradient || "linear-gradient(135deg, #0284c7, #06b6d4)",
+            tag: DEFAULT_SERVICES[idx % DEFAULT_SERVICES.length]?.tag || "Xizmat"
           }));
           setServices(merged);
         }
@@ -223,7 +232,7 @@ function App() {
 
           <p className="hero-description">
             Nemis mikroskoplari ostida 100% og'riqsiz davolash va Shveytsariya implantlari. 
-            Xorazm viloyati Qo'shko'pir tumanidagi eng zamonaviy stomatologiya klinikasi.
+            Xorazm viloyati Qo'shko'pir tumanidagi eng zamonaviy va ishanchli stomatologiya klinikasi.
           </p>
 
           <div className="hero-actions">
@@ -251,17 +260,28 @@ function App() {
           </div>
         </motion.div>
 
-        {/* 3D CANVAS FOR REALISTIC GLASS DIAMOND TOOTH */}
-        <div className="canvas-wrapper">
-          <Canvas camera={{ position: [0, 0, 7.5], fov: 45 }}>
-            <Environment preset="city" />
-            <Gavhar3D />
-          </Canvas>
+        {/* ULTRA-HD FAST HERO IMAGE */}
+        <motion.div 
+          className="hero-image-box"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          <div className="hero-image-glow"></div>
+          <img 
+            src="/images/tooth_3d.jpg" 
+            alt="Gavhar 3D Tooth" 
+            className="hero-tooth-img" 
+          />
           
-          <div style={{ position: 'absolute', bottom: '20px', right: '20px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', padding: '12px 20px', borderRadius: '999px', fontSize: '0.88rem', fontWeight: 700, color: '#0284c7', boxShadow: '0 12px 24px rgba(2, 132, 199, 0.15)', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.8)' }}>
-            <Sparkles size={18} color="#0284c7" /> Interaktiv 3D Kristal Tish Modeli
+          <div className="hero-floating-badge">
+            <Sparkles size={20} color="#0284c7" />
+            <div>
+              <strong>Gavhar Premium Emal</strong>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>100% Tabiiy & Mustahkam</div>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* STATS BAR SECTION */}
@@ -290,7 +310,7 @@ function App() {
         </div>
       </section>
 
-      {/* SERVICES SECTION WITH 3D RENDERED ICONS */}
+      {/* SERVICES SECTION */}
       <section id="services" style={{ padding: '4rem 0' }}>
         <div className="section-header">
           <span className="section-tag">Xizmatlarimiz</span>
@@ -298,54 +318,71 @@ function App() {
         </div>
 
         <div className="services-grid">
-          {services.map((srv, idx) => (
-            <motion.div 
-              key={srv.id}
-              className="service-card glass-card"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1 }}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem' }}>
-                  <div style={{ width: '70px', height: '70px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 8px 20px rgba(2,132,199,0.2)', border: '2px solid white' }}>
-                    <img src={srv.image || "/images/tooth_3d.jpg"} alt={srv.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {services.map((srv, idx) => {
+            const IconComponent = srv.icon || Gem;
+            return (
+              <motion.div 
+                key={srv.id}
+                className="service-card glass-card"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem' }}>
+                    <div 
+                      style={{ 
+                        width: '65px', 
+                        height: '65px', 
+                        borderRadius: '20px', 
+                        background: srv.gradient || "linear-gradient(135deg, #0284c7, #06b6d4)",
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        boxShadow: '0 10px 25px rgba(2,132,199,0.3)',
+                        border: '2px solid white'
+                      }}
+                    >
+                      <IconComponent size={32} />
+                    </div>
+
+                    {srv.tag && (
+                      <span style={{ padding: '6px 14px', background: 'rgba(2,132,199,0.1)', color: '#0284c7', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700, border: '1px solid rgba(2,132,199,0.2)' }}>
+                        {srv.tag}
+                      </span>
+                    )}
                   </div>
-                  {srv.tag && (
-                    <span style={{ padding: '6px 14px', background: 'rgba(2,132,199,0.1)', color: '#0284c7', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700, border: '1px solid rgba(2,132,199,0.2)' }}>
-                      {srv.tag}
+
+                  <h3 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '0.6rem', fontWeight: 700 }}>{srv.name}</h3>
+                  <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: '1.55' }}>
+                    {srv.description || "Yuqori aniqlik va zamonaviy nemis uskunalarida davolash xizmati."}
+                  </p>
+                </div>
+
+                <div>
+                  <div className="service-price">
+                    {srv.price ? srv.price.toLocaleString() : "350 000"} so'm
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={14} /> {srv.durationMinutes || 30} daqiqa
                     </span>
-                  )}
+                    <button 
+                      onClick={() => {
+                        setSelectedService(srv.name);
+                        document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
+                      }} 
+                      style={{ background: 'none', border: 'none', color: '#0284c7', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.95rem' }}
+                    >
+                      Yozilish <ChevronRight size={16} />
+                    </button>
+                  </div>
                 </div>
-
-                <h3 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '0.6rem', fontWeight: 700 }}>{srv.name}</h3>
-                <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: '1.55' }}>
-                  {srv.description || "Yuqori aniqlik va zamonaviy nemis uskunalarida davolash xizmati."}
-                </p>
-              </div>
-
-              <div>
-                <div className="service-price">
-                  {srv.price ? srv.price.toLocaleString() : "350 000"} so'm
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Clock size={14} /> {srv.durationMinutes || 30} daqiqa
-                  </span>
-                  <button 
-                    onClick={() => {
-                      setSelectedService(srv.name);
-                      document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
-                    }} 
-                    style={{ background: 'none', border: 'none', color: '#0284c7', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.95rem' }}
-                  >
-                    Yozilish <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 
