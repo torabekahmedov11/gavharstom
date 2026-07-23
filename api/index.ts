@@ -15,8 +15,13 @@ startBot(prisma);
 app.use(cors());
 app.use(express.json());
 
-// --- Xavfsizlik bo'limi ---
-// Kelajakda bu yerga JWT token tekshiruvi qo'shiladi.
+// Vercel Serverless Route Normalization
+app.use((req, res, next) => {
+  if (req.url && !req.url.startsWith('/api')) {
+    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  }
+  next();
+});
 
 // Oddiy test tizim ishlayotganini tekshirish uchun
 app.get('/api/health', (req, res) => {

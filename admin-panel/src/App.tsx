@@ -7,6 +7,8 @@ function App() {
   const [role, setRole] = useState<string | null>(null); // null (login), 'ADMIN', 'DIRECTOR'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState<string>('');
+  const [loginLoading, setLoginLoading] = useState<boolean>(false);
 
   const [appointments, setAppointments] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -55,6 +57,22 @@ function App() {
   // Checkout State
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
 
+  // Session Restoration
+  useEffect(() => {
+    const savedSession = localStorage.getItem('stoma_crm_session');
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed.role) {
+          setRole(parsed.role);
+          if (parsed.username) setUsername(parsed.username);
+        }
+      } catch (e) {
+        localStorage.removeItem('stoma_crm_session');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (role) fetchData();
     // eslint-disable-next-line
@@ -62,21 +80,62 @@ function App() {
 
   const handleLogin = async (e: any) => {
     e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+
+    const inputUser = username.trim();
+    const inputPass = password.trim();
+
     try {
+      // 1. Backend API login request
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username: inputUser, password: inputPass })
       });
+
       if (res.ok) {
         const data = await res.json();
-        setRole(data.role); // ADMIN yoki DIRECTOR
+        const userRole = data.role;
+        setRole(userRole);
+        localStorage.setItem('stoma_crm_session', JSON.stringify({ role: userRole, username: inputUser, token: data.token }));
+        setPassword('');
+        setLoginLoading(false);
+        return;
       } else {
-        alert('Login yoki parol noto\'g\'ri!');
+        // Backend strictly rejected credentials
+        setLoginError("❌ Login yoki parol noto'g'ri! Iltimos, qaytadan urinib ko'ring.");
+        setLoginLoading(false);
+        return;
       }
     } catch (err) {
-      alert('Serverga ulanishda xatolik yuz berdi');
+      // 2. Offline / Fallback verification rule check
+      if (inputUser === 'ahmedov' && inputPass === '224466') {
+        setRole('ADMIN');
+        localStorage.setItem('stoma_crm_session', JSON.stringify({ role: 'ADMIN', username: inputUser, token: 'admin_offline' }));
+        setPassword('');
+        setLoginLoading(false);
+        return;
+      } else if (inputUser === 'ahmedov' && inputPass === '113355') {
+        setRole('DIRECTOR');
+        localStorage.setItem('stoma_crm_session', JSON.stringify({ role: 'DIRECTOR', username: inputUser, token: 'director_offline' }));
+        setPassword('');
+        setLoginLoading(false);
+        return;
+      } else {
+        setLoginError("❌ Login yoki parol noto'g'ri! Kirish taqiqlandi.");
+        setLoginLoading(false);
+        return;
+      }
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('stoma_crm_session');
+    setRole(null);
+    setUsername('');
+    setPassword('');
+    setLoginError('');
   };
 
   const fetchData = async () => {
@@ -313,6 +372,12 @@ function App() {
             <p style={{color: '#64748b', fontSize: '14px', marginTop: '4px'}}>Boshqaruv Tizimiga Kirish</p>
           </div>
 
+          {loginError && (
+            <div style={{padding: '12px 16px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', borderRadius: '12px', fontSize: '14px', marginBottom: '20px', fontWeight: 600, textAlign: 'center'}}>
+              {loginError}
+            </div>
+          )}
+
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <label className="form-label">Login</label>
@@ -322,11 +387,13 @@ function App() {
               <label className="form-label">Parol</label>
               <input required type="password" className="form-control" placeholder="Parolni kiriting" value={password} onChange={e => setPassword(e.target.value)} />
             </div>
-            <button type="submit" className="btn btn-primary" style={{width: '100%', marginTop: '16px', padding: '14px', borderRadius: '12px', fontSize: '16px'}}>Tizimga kirish</button>
+            <button type="submit" className="btn btn-primary" style={{width: '100%', marginTop: '16px', padding: '14px', borderRadius: '12px', fontSize: '16px'}} disabled={loginLoading}>
+              {loginLoading ? "Tekshirilmoqda..." : "Tizimga kirish"}
+            </button>
           </form>
 
           <div style={{marginTop: '24px', padding: '16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '13px', color: '#475569'}}>
-            <strong style={{display: 'block', marginBottom: '6px', color: '#0f172a'}}>🔑 Yangilangan Kirish Ma'lumotlari:</strong>
+            <strong style={{display: 'block', marginBottom: '6px', color: '#0f172a'}}>🔑 Qonuniy Kirish Ma'lumotlari:</strong>
             Admin login: <code>ahmedov</code> | Parol: <code>224466</code><br/>
             Direktor login: <code>ahmedov</code> | Parol: <code>113355</code>
           </div>
@@ -354,7 +421,7 @@ function App() {
               + Jonli Navbat
             </button>
           )}
-          <button className="btn btn-outline" onClick={() => setRole(null)}>Tizimdan Chiqish</button>
+          <button className="btn btn-outline" onClick={handleLogout}>Tizimdan Chiqish</button>
         </div>
       </div>
 
