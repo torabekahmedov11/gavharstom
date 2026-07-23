@@ -1,39 +1,35 @@
 const { execSync } = require('child_process');
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
 
-function run(cmd, cwd = process.cwd()) {
+function run(cmd, cwd) {
   console.log(`\nRunning: ${cmd} in ${cwd}`);
-  execSync(cmd, { stdio: 'inherit', cwd });
+  execSync(cmd, { cwd, stdio: 'inherit' });
 }
 
 function copyFolderSync(from, to) {
-  if (!fs.existsSync(to)) {
-    fs.mkdirSync(to, { recursive: true });
-  }
+  if (!fs.existsSync(to)) fs.mkdirSync(to, { recursive: true });
   fs.readdirSync(from).forEach(element => {
-    const fromPath = path.join(from, element);
-    const toPath = path.join(to, element);
-    if (fs.lstatSync(fromPath).isFile()) {
-      fs.copyFileSync(fromPath, toPath);
+    if (fs.lstatSync(path.join(from, element)).isDirectory()) {
+      copyFolderSync(path.join(from, element), path.join(to, element));
     } else {
-      copyFolderSync(fromPath, toPath);
+      fs.copyFileSync(path.join(from, element), path.join(to, element));
     }
   });
 }
 
 try {
-  // 1. Install dependencies and Build Admin Panel
+  console.log('Starting full project build...');
+
+  // 1. Build Admin Panel
   run('npm install', path.join(__dirname, 'admin-panel'));
   run('npm run build', path.join(__dirname, 'admin-panel'));
 
-  // 2. Install dependencies and Build Client Web
+  // 2. Build Client Web
   run('npm install', path.join(__dirname, 'client-web'));
   run('npm run build', path.join(__dirname, 'client-web'));
 
-  // 3. API dependencies are handled by root postinstall, so we skip it here.
-
-  // 4. Merge Builds into 'public' folder
+  // 3. Prepare public directory
   const publicDir = path.join(__dirname, 'public');
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
@@ -43,13 +39,12 @@ try {
   console.log('Copying client-web to /public');
   copyFolderSync(path.join(__dirname, 'client-web', 'dist'), publicDir);
 
-  // Copy admin-panel build to public/admin
+  // Copy admin-panel build to /public/admin
   console.log('Copying admin-panel to /public/admin');
-  const adminDir = path.join(publicDir, 'admin');
-  copyFolderSync(path.join(__dirname, 'admin-panel', 'dist'), adminDir);
+  copyFolderSync(path.join(__dirname, 'admin-panel', 'dist'), path.join(publicDir, 'admin'));
 
-  console.log('Build and merge completed successfully!');
-} catch (err) {
-  console.error('Build failed:', err);
+  console.log('\nBuild and merge completed successfully!');
+} catch (error) {
+  console.error('\nBuild failed:', error);
   process.exit(1);
 }
