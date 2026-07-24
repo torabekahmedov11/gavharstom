@@ -1252,20 +1252,83 @@ export default function App() {
               )}
             </div>
 
-            <h4 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '12px' }}>Tashxis va Tishlar Holati:</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-              {(selectedPatient.teethNotes || [
-                { number: 16, status: 'Implant', notes: 'Straumann implant muvaffaqiyatli qo\'yildi' },
-                { number: 21, status: 'Vinir', notes: 'E-Max keramik vinir o\'rnatildi' }
-              ]).map((t, idx) => (
-                <div key={idx} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--card)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontWeight: 800, color: 'var(--primary)' }}>Tish #{t.number}:</span> {t.status}
-                    {t.notes && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{t.notes}</div>}
+            {/* Patient-Linked 32-Tooth Odontogram Grid */}
+            <h4 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={18} color="var(--primary)" /> Bemorning 32-Tish Odontogramma Chart-i (FDI)
+            </h4>
+
+            <div style={{ padding: '14px', borderRadius: '16px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>YUQORI JAG' (18 - 28)</div>
+              <div className="teeth-matrix-grid" style={{ marginBottom: '12px' }}>
+                {[18,17,16,15,14,13,12,11, 21,22,23,24,25,26,27,28].map(num => {
+                  const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
+                  const st = cond?.status || 'Sog\'lom';
+                  const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+                  
+                  return (
+                    <button 
+                      key={num}
+                      type="button"
+                      className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                      onClick={() => setSelectedTooth(num)}
+                    >
+                      <div>{num}</div>
+                      <div style={{ fontSize: '9px', fontWeight: 600 }}>{st.substring(0, 3)}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>PASTKI JAG' (48 - 38)</div>
+              <div className="teeth-matrix-grid" style={{ marginBottom: '12px' }}>
+                {[48,47,46,45,44,43,42,41, 31,32,33,34,35,36,37,38].map(num => {
+                  const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
+                  const st = cond?.status || 'Sog\'lom';
+                  const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+                  
+                  return (
+                    <button 
+                      key={num}
+                      type="button"
+                      className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                      onClick={() => setSelectedTooth(num)}
+                    >
+                      <div>{num}</div>
+                      <div style={{ fontSize: '9px', fontWeight: 600 }}>{st.substring(0, 3)}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedTooth && (
+                <div style={{ padding: '10px', borderRadius: '12px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 800, marginBottom: '6px' }}>Tish #{selectedTooth} uchun holat tanlang:</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {[
+                      { label: "Sog'lom", status: "Sog'lom", cls: "btn-outline" },
+                      { label: "Karies", status: "Karies", cls: "btn-warning" },
+                      { label: "Plomba", status: "Plomba", cls: "btn-primary" },
+                      { label: "Vinir", status: "Vinir", cls: "btn-outline" },
+                      { label: "Implant", status: "Implant", cls: "btn-success" },
+                      { label: "Yulib tashlangan", status: "Yulib tashlangan", cls: "btn-danger" }
+                    ].map(item => (
+                      <button 
+                        key={item.status}
+                        type="button"
+                        className={`btn btn-sm ${item.cls}`}
+                        style={{ fontSize: '10px', padding: '4px 8px' }}
+                        onClick={() => {
+                          updateToothStatus(selectedTooth, item.status as ToothCondition['status']);
+                          const updatedTeeth = [...(selectedPatient.teethNotes || []), { number: selectedTooth, status: item.status as ToothCondition['status'] }];
+                          setSelectedPatient({ ...selectedPatient, teethNotes: updatedTeeth });
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
-                  <span className="badge badge-success">{t.status}</span>
                 </div>
-              ))}
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
