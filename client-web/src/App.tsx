@@ -31,13 +31,13 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 const DEFAULT_SERVICES = [
   {
     id: 's0',
-    name: "Bepul Konsultatsiya & Diagnostika",
-    description: "Qaysi davolash kerakligini bilmasangiz — shifokorimiz tishingizni bepul ko'rikdan o'tkazib, aniq tashxis va tavsiya beradi.",
+    name: "🏥 Klinikadagi Bepul Ko'rik & Diagnostika (Jonli Qabul)",
+    description: "Klinikamizga shaxsan kelib, shifokorimiz zolidagi 100% bepul ko'rik, tishlar diagnostikasi va maslahatdan o'tishingiz mumkin (Online emas, jonli shifokor qabuli!).",
     price: 0,
     durationMinutes: 30,
     icon: Stethoscope,
     gradient: "linear-gradient(135deg, #10b981, #059669)",
-    tag: "Eng ko'p tanlanadi (Bepul)"
+    tag: "Eng ko'p tanlanadi (Bepul Jonli Ko'rik)"
   },
   {
     id: 's1',
@@ -322,8 +322,13 @@ function App() {
             <div className="logo-icon" style={{ background: 'linear-gradient(135deg, #0284c7, #06b6d4)', boxShadow: '0 4px 15px rgba(2, 132, 199, 0.3)' }}>
               <Gem size={22} color="white" />
             </div>
-            <div className="logo-text">
-              GAVHAR <span style={{ color: '#0284c7', fontWeight: 800 }}>STOMA</span>
+            <div className="logo-text" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.3px', color: '#0f172a' }}>
+                GAVHAR <span style={{ color: '#0284c7' }}>STOMATOLOGIYA</span>
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, marginTop: '-4px' }}>
+                Zamonaviy Tish Davolash Markazi
+              </div>
             </div>
           </a>
 
@@ -431,17 +436,32 @@ function App() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          <div className="tooth-svg-card" style={{ padding: '1.2rem', textAlign: 'center' }}>
-            <img 
-              src="/hero_tooth.jpg" 
-              alt="Gavhar Real Crystal Tooth Render" 
-              style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', borderRadius: '20px', boxShadow: '0 15px 35px rgba(2, 132, 199, 0.2)' }}
-            />
-            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>Gavhar Crystal Premium Dental</h3>
-              <p style={{ fontSize: '0.85rem', color: '#0284c7', fontWeight: 700, marginTop: '0.2rem' }}>
-                ✨ 100% Og'riqsiz & Nemis Texnologiyasi
-              </p>
+          <div className="tooth-svg-card" style={{ padding: '1.2rem', textAlign: 'center', background: 'rgba(255,255,255,0.9)', borderRadius: '24px', border: '1px solid rgba(2, 132, 199, 0.2)', boxShadow: '0 20px 45px rgba(2, 132, 199, 0.15)' }}>
+            <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden' }}>
+              <img 
+                src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=80&w=800" 
+                onError={(e) => { (e.target as HTMLElement).setAttribute('src', '/hero_tooth.jpg'); }}
+                alt="Gavhar Stomatologiya Klinika Qabuli" 
+                style={{ width: '100%', height: '290px', objectFit: 'cover', display: 'block' }}
+              />
+              <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', padding: '10px 14px', borderRadius: '14px', color: 'white', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ padding: '8px', borderRadius: '10px', background: '#0284c7', color: 'white' }}>
+                  <Gem size={20} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>Gavhar Stomatologiya</div>
+                  <div style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>✨ 100% Og'riqsiz Nemis Texnologiyasi</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CheckCircle2 size={15} /> Germaniya Mikroskopi
+              </span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Award size={15} /> 10 Yil Kafolat
+              </span>
             </div>
           </div>
         </motion.div>
@@ -658,10 +678,18 @@ function App() {
             <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, #0284c7, #06b6d4)', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', margin: '0 auto 0.8rem' }}>
               <PhoneCall size={28} />
             </div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Onlayn Qabulga Yozilish</h2>
-            <p style={{ color: '#64748b', marginTop: '0.4rem', fontSize: '0.9rem' }}>
-              Shifokor va xizmatni tanlang — tizim o'rtacha vaqtni va bo'sh soatlarni avtomatik hisoblaydi!
+            <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Klinikada Jonli Qabulga Yozilish</h2>
+            <p style={{ color: '#64748b', marginTop: '0.4rem', fontSize: '0.92rem' }}>
+              3 ta juda oson va aniq qadamda shifokorimiz qabuliga navbatga yoziling!
             </p>
+          </div>
+
+          {/* EXPLICIT IN-PERSON FREE CONSULTATION EXPLANATION BOX */}
+          <div style={{ padding: '16px 20px', borderRadius: '16px', background: '#ecfdf5', border: '1.5px solid #6ee7b7', fontSize: '0.88rem', color: '#047857', marginBottom: '1.8rem', lineHeight: '1.6' }}>
+            <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              📍 MUHIM ESLATMA (Jonli Ko'rik):
+            </div>
+            <b>"Klinikadagi Bepul Ko'rik"</b> — bu klinikaga kelib, shifokorimiz xonasida zolda 100% bepul ko'rik va diagnostikadan o'tishingizdir. <i>(Bu online maslahat emas, bevosita klinika qabulxonasida o'tkaziladigan jonli qabuldir).</i>
           </div>
 
           {errorMessage && (
