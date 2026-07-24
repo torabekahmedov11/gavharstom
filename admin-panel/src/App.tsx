@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import './index.css';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
 export interface Doctor {
   id: string;
   firstName: string;
@@ -274,9 +276,13 @@ export default function App() {
 
     const doc = doctors.find(d => d.id === selectedDoctorId);
     const srv = services.find(s => s.id === selectedServiceId);
+    const duration = srv?.durationMinutes || 45;
+
+    const startIso = `${TODAY}T${newAppTime}:00.000Z`;
+    const endIso = new Date(new Date(startIso).getTime() + duration * 60000).toISOString();
 
     const newApp: Appointment = {
-      id: `app_${Date.now()}`,
+      id: `app_admin_${Date.now()}`,
       patientId: `p_${Date.now()}`,
       patient: {
         firstName: newPatientName.split(' ')[0] || newPatientName,
@@ -286,14 +292,26 @@ export default function App() {
       doctorId: selectedDoctorId,
       doctor: { firstName: doc?.firstName || '', lastName: doc?.lastName || '' },
       service: { name: srv?.name || '', price: srv?.price || 0 },
-      startTime: `${TODAY}T${newAppTime}:00.000Z`,
-      endTime: `${TODAY}T${newAppTime}:45.000Z`,
+      startTime: startIso,
+      endTime: endIso,
       status: 'CONFIRMED',
       isLiveQueue: true,
       createdAt: new Date().toISOString()
     };
 
-    setAppointments([newApp, ...appointments]);
+    const updated = [newApp, ...appointments];
+    setAppointments(updated);
+
+    // Save to shared localStorage so client-web updates busy slots in real time
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+    // Send to backend
+    fetch(`${API_URL}/admin/appointments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newApp)
+    }).catch(() => {});
+
     setNewAppointmentModal(false);
     setNewPatientName('');
     setNewPatientPhone('');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, 
@@ -21,7 +21,8 @@ import {
   X,
   CalendarCheck,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Check
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -116,7 +117,7 @@ const DEFAULT_DOCTORS = [
   }
 ];
 
-const TIME_SLOTS = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"];
+const CANDIDATE_TIMES = ["08:30", "09:15", "10:00", "10:45", "11:30", "14:00", "14:45", "15:30", "16:15", "17:00"];
 
 const REVIEWS = [
   {
@@ -143,29 +144,93 @@ function App() {
   const [services] = useState<any[]>(DEFAULT_SERVICES);
   const [doctors] = useState<any[]>(DEFAULT_DOCTORS);
   
-  // Booking Form State
+  // Form State
   const [selectedDoctorId, setSelectedDoctorId] = useState('d1');
-  const [selectedService, setSelectedService] = useState('');
+  const [selectedService, setSelectedService] = useState('Swiss Implantatsiya');
   const [firstName, setFirstName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('+998');
   const [bookingDate, setBookingDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [bookingTime, setBookingTime] = useState('10:00');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('09:15');
   
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Already Booked Slots Prevention
-  const [bookedSlots, setBookedSlots] = useState<string[]>([
-    'd1_' + new Date().toISOString().split('T')[0] + '_09:30'
-  ]);
+  // Real-time Synchronized Occupied Appointments Store
+  const [busySlots, setBusySlots] = useState<any[]>([]);
+
+  // Fetch Busy Slots from API and Shared LocalStorage
+  const fetchBusySlots = async () => {
+    try {
+      const res = await fetch(`${API_URL}/web/busy-slots?doctorId=${selectedDoctorId}&date=${bookingDate}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setBusySlots(data);
+      }
+    } catch (e) {}
+
+    // Also check shared localStorage for instant tab sync
+    const sharedStr = localStorage.getItem('stoma_crm_appointments');
+    if (sharedStr) {
+      try {
+        const sharedArr = JSON.parse(sharedStr);
+        if (Array.isArray(sharedArr)) {
+          setBusySlots(prev => {
+            const combined = [...prev, ...sharedArr];
+            return Array.from(new Map(combined.map(item => [item.id, item])).values());
+          });
+        }
+      } catch (e) {}
+    }
+  };
+
+  useEffect(() => {
+    fetchBusySlots();
+    const timer = setInterval(fetchBusySlots, 4000);
+    return () => clearInterval(timer);
+  }, [selectedDoctorId, bookingDate]);
+
+  // Selected Service Duration in Minutes
+  const activeServiceObj = services.find(s => s.name === selectedService) || services[0];
+  const serviceDuration = activeServiceObj?.durationMinutes || 30;
+
+  // Calculate Status of Each Slot
+  const slotStatuses = CANDIDATE_TIMES.map(timeStr => {
+    const slotStartIso = `${bookingDate}T${timeStr}:00.000Z`;
+    const slotStartMs = new Date(slotStartIso).getTime();
+    const slotEndMs = slotStartMs + serviceDuration * 60000;
+    const nowMs = Date.now();
+
+    // Check 1: Passed time today
+    const isPast = (bookingDate === new Date().toISOString().split('T')[0]) && (slotStartMs < nowMs);
+
+    // Check 2: Overlapping busy slot in Admin / Live Queue
+    const occupiedBy = busySlots.find(busy => {
+      if (busy.status === 'CANCELLED') return false;
+      if (busy.doctorId && busy.doctorId !== selectedDoctorId) return false;
+
+      const busyStart = new Date(busy.startTime).getTime();
+      const busyEnd = new Date(busy.endTime).getTime();
+
+      // Check range overlap: (StartA < EndB) and (EndA > StartB)
+      return (slotStartMs < busyEnd && slotEndMs > busyStart);
+    });
+
+    return {
+      timeStr,
+      slotStartMs,
+      slotEndMs,
+      isPast,
+      isOccupied: !!occupiedBy,
+      occupiedInfo: occupiedBy ? (occupiedBy.serviceName || 'Admin / Live Queue Qabuli') : null
+    };
+  });
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
-    // Validation
     if (!firstName || firstName.trim().length < 3) {
       setErrorMessage("Iltimos, ismingiz va familiyangizni to'liq kiriting!");
       return;
@@ -176,10 +241,9 @@ function App() {
       return;
     }
 
-    // Check if slot is already booked for this doctor
-    const slotKey = `${selectedDoctorId}_${bookingDate}_${bookingTime}`;
-    if (bookedSlots.includes(slotKey)) {
-      setErrorMessage("❌ Ushbu shifokorda tanlangan vaqtda qabul band! Iltimos, boshqa vaqt yoki shifokorni tanlang.");
+    const chosenSlotStatus = slotStatuses.find(s => s.timeStr === selectedTimeSlot);
+    if (!chosenSlotStatus || chosenSlotStatus.isPast || chosenSlotStatus.isOccupied) {
+      setErrorMessage("❌ Ushbu vaqt band yoki o'tib ketgan! Iltimos, yashil rangdagi bo'sh vaqtni tanlang.");
       return;
     }
 
@@ -187,6 +251,21 @@ function App() {
     try {
       const selectedDocObj = doctors.find(d => d.id === selectedDoctorId);
       
+      const newApp = {
+        id: `app_client_${Date.now()}`,
+        patientId: `p_${Date.now()}`,
+        patient: { firstName, phoneNumber },
+        doctorId: selectedDoctorId,
+        doctor: { firstName: selectedDocObj?.name || 'Dr.' },
+        service: { name: selectedService, price: activeServiceObj.price, durationMinutes: serviceDuration },
+        startTime: new Date(chosenSlotStatus.slotStartMs).toISOString(),
+        endTime: new Date(chosenSlotStatus.slotEndMs).toISOString(),
+        status: 'PENDING',
+        isLiveQueue: false,
+        createdAt: new Date().toISOString()
+      };
+
+      // Save to API
       await fetch(`${API_URL}/web/book`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -197,16 +276,20 @@ function App() {
           doctorName: selectedDocObj?.name,
           selectedService, 
           bookingDate,
-          bookingTime 
+          bookingTime: selectedTimeSlot 
         })
       });
 
-      setBookedSlots(prev => [...prev, slotKey]);
+      // Save to shared localStorage for instant sync with admin panel
+      const sharedStr = localStorage.getItem('stoma_crm_appointments');
+      const sharedArr = sharedStr ? JSON.parse(sharedStr) : [];
+      localStorage.setItem('stoma_crm_appointments', JSON.stringify([newApp, ...sharedArr]));
+
       setSuccess(true);
       setFirstName('');
       setPhoneNumber('+998');
+      fetchBusySlots();
     } catch (error) {
-      setBookedSlots(prev => [...prev, slotKey]);
       setSuccess(true);
     }
     setLoading(false);
@@ -555,16 +638,16 @@ function App() {
         </div>
       </section>
 
-      {/* ENHANCED BOOKING SECTION WITH DOCTOR SELECTOR & TIME SLOT PREVENTER */}
+      {/* SMART REAL-TIME SYNCHRONIZED BOOKING SECTION */}
       <section id="booking" style={{ padding: '5rem 0' }}>
         <div className="booking-container glass-card">
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, #0284c7, #06b6d4)', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', margin: '0 auto 0.8rem' }}>
               <PhoneCall size={28} />
             </div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Qabulga Yozilish</h2>
+            <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Onlayn Qabulga Yozilish</h2>
             <p style={{ color: '#64748b', marginTop: '0.4rem', fontSize: '0.9rem' }}>
-              Shifokorni tanlang va sizga qulay vaqtni belgilang!
+              Shifokor va xizmatni tanlang — tizim o'rtacha vaqtni va bo'sh soatlarni avtomatik hisoblaydi!
             </p>
           </div>
 
@@ -580,7 +663,7 @@ function App() {
               <CheckCircle2 size={64} style={{ margin: '0 auto 0.8rem' }} />
               <h3 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Muvaffaqiyatli Yozildingiz!</h3>
               <p style={{ marginTop: '0.4rem', color: '#047857', fontSize: '0.92rem' }}>
-                Shifokor va vaqtingiz tasdiqlandi. Qabulxona xodimi tez orada siz bilan bog'lanadi.
+                Shifokor va qabul vaqtingiz tasdiqlandi. Admin panel bilan sinxronlashtirildi.
               </p>
               <button className="btn btn-primary" style={{ marginTop: '1.5rem' }} onClick={() => setSuccess(false)}>
                 Yana Yozilish
@@ -588,8 +671,10 @@ function App() {
             </motion.div>
           ) : (
             <form onSubmit={handleBooking}>
+              
+              {/* 1. Select Doctor */}
               <div className="form-group">
-                <label className="form-label">Shifokorni Tanlang *</label>
+                <label className="form-label">1. Shifokorni Tanlang *</label>
                 <select 
                   required
                   className="form-control"
@@ -603,71 +688,131 @@ function App() {
                 </select>
               </div>
 
+              {/* 2. Select Service */}
               <div className="form-group">
-                <label className="form-label">Ismingiz va Familiyangiz *</label>
-                <input 
-                  required 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="Masalan: Sardor Rahimov" 
-                  value={firstName} 
-                  onChange={e => setFirstName(e.target.value)} 
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Telefon Raqamingiz *</label>
-                <input 
-                  required 
-                  type="tel" 
-                  className="form-control" 
-                  placeholder="+998 90 123 45 67" 
-                  value={phoneNumber} 
-                  onChange={e => setPhoneNumber(e.target.value)} 
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Qabul Kuni *</label>
-                  <input 
-                    required
-                    type="date" 
-                    className="form-control" 
-                    value={bookingDate} 
-                    onChange={e => setBookingDate(e.target.value)} 
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Bo'sh Vaqt (Soat) *</label>
-                  <select 
-                    className="form-control"
-                    value={bookingTime}
-                    onChange={e => setBookingTime(e.target.value)}
-                  >
-                    {TIME_SLOTS.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Xizmat Turi (Ixtiyoriy)</label>
+                <label className="form-label">2. Xizmat Turi (Davomiyligi va Narxi) *</label>
                 <select 
+                  required
                   className="form-control"
                   value={selectedService}
                   onChange={e => setSelectedService(e.target.value)}
                 >
-                  <option value="">-- Xizmatni tanlang --</option>
                   {services.map(s => (
-                    <option key={s.id} value={s.name}>{s.name} - {s.price ? s.price.toLocaleString() : "350 000"} so'm</option>
+                    <option key={s.id} value={s.name}>
+                      {s.name} — {s.price ? s.price.toLocaleString() : "350 000"} so'm ({s.durationMinutes || 30} daqiqa)
+                    </option>
                   ))}
                 </select>
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1.1rem', fontSize: '1.05rem', marginTop: '1rem' }} disabled={loading}>
+              {/* 3. Patient Name and Phone */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Ismingiz va Familiyangiz *</label>
+                  <input 
+                    required 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Masalan: Sardor Rahimov" 
+                    value={firstName} 
+                    onChange={e => setFirstName(e.target.value)} 
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Telefon Raqamingiz *</label>
+                  <input 
+                    required 
+                    type="tel" 
+                    className="form-control" 
+                    placeholder="+998 90 123 45 67" 
+                    value={phoneNumber} 
+                    onChange={e => setPhoneNumber(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              {/* 4. Date Selection */}
+              <div className="form-group">
+                <label className="form-label">3. Qabul Sanasini Tanlang *</label>
+                <input 
+                  required
+                  type="date" 
+                  className="form-control" 
+                  value={bookingDate} 
+                  onChange={e => setBookingDate(e.target.value)} 
+                />
+              </div>
+
+              {/* 5. SMART TIME SLOTS CALCULATOR (REAL-TIME SYNC WITH ADMIN) */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>4. Shifokorning Bo'sh Soatlarini Tanlang ({serviceDuration} daqiqa ajratiladi) *</span>
+                  <span style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 700 }}>🟢 Bo'sh | 🔴 Band / O'tib ketgan</span>
+                </label>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', marginTop: '6px' }}>
+                  {slotStatuses.map(slot => {
+                    const isDisabled = slot.isPast || slot.isOccupied;
+                    const isSelected = selectedTimeSlot === slot.timeStr && !isDisabled;
+
+                    let bg = 'var(--card)';
+                    let border = '1px solid #cbd5e1';
+                    let color = '#0f172a';
+
+                    if (slot.isPast) {
+                      bg = '#f1f5f9';
+                      color = '#94a3b8';
+                    } else if (slot.isOccupied) {
+                      bg = '#fee2e2';
+                      border = '1px solid #fca5a5';
+                      color = '#b91c1c';
+                    } else if (isSelected) {
+                      bg = '#0284c7';
+                      color = 'white';
+                      border = '2px solid #0369a1';
+                    }
+
+                    return (
+                      <button
+                        key={slot.timeStr}
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => setSelectedTimeSlot(slot.timeStr)}
+                        style={{
+                          padding: '10px 8px',
+                          borderRadius: '12px',
+                          border,
+                          background: bg,
+                          color,
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          cursor: isDisabled ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '2px',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} /> {slot.timeStr}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 600, opacity: 0.9 }}>
+                          {slot.isPast ? "O'tib ketgan" : slot.isOccupied ? "BAND (Admin)" : "BO'SH"}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ padding: '14px', borderRadius: '14px', background: '#f0f9ff', border: '1px solid #bae6fd', fontSize: '0.85rem', color: '#0369a1', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Check size={18} />
+                Tanlangan qabul: <b>{selectedTimeSlot}</b> (O'rtacha davomiyligi: <b>{serviceDuration} daqiqa</b>)
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1.1rem', fontSize: '1.05rem' }} disabled={loading}>
                 {loading ? 'Yuborilmoqda...' : 'Qabulga Yozilishni Tasdiqlash'}
               </button>
             </form>

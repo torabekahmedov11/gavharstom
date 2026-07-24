@@ -269,12 +269,20 @@ app.get('/api/admin/appointments', async (req, res) => {
   res.json(appointmentsStore);
 });
 
-// Saytdan navbatga yozilish
+// Saytdan navbatga yozilish (Doctor, Date, Time slot, Service bilan)
 app.post('/api/web/book', async (req, res) => {
-  const { firstName, phoneNumber, selectedService, bookingDate } = req.body;
+  const { firstName, phoneNumber, doctorId, doctorName, selectedService, bookingDate, bookingTime } = req.body;
 
-  const selectedDoc = doctorsStore[0] || { id: 'd1', firstName: 'Dr. Torabek', lastName: 'Ahmedov' };
+  const matchedDoc = doctorsStore.find(d => d.id === doctorId) || doctorsStore[0];
   const srvMatch = servicesStore.find(s => s.name === selectedService) || servicesStore[0];
+  const duration = srvMatch?.durationMinutes || 30;
+
+  const dateStr = bookingDate || new Date().toISOString().split('T')[0];
+  const timeStr = bookingTime || '10:00';
+  const startIso = `${dateStr}T${timeStr}:00.000Z`;
+
+  const startDateObj = new Date(startIso);
+  const endDateObj = new Date(startDateObj.getTime() + duration * 60000);
 
   const newAppointment = {
     id: `app_web_${Date.now()}`,
@@ -284,14 +292,15 @@ app.post('/api/web/book', async (req, res) => {
       lastName: '',
       phoneNumber: phoneNumber || '+998'
     },
-    doctorId: selectedDoc.id,
-    doctor: { firstName: selectedDoc.firstName, lastName: selectedDoc.lastName },
-    service: { name: srvMatch?.name || 'Konsultatsiya', price: srvMatch?.price || 0 },
-    date: bookingDate || new Date().toISOString(),
-    startTime: bookingDate || new Date().toISOString(),
-    endTime: new Date(Date.now() + 30 * 60000).toISOString(),
+    doctorId: matchedDoc.id,
+    doctor: { firstName: matchedDoc.firstName || doctorName || 'Dr.', lastName: matchedDoc.lastName || '' },
+    service: { name: srvMatch?.name || 'Konsultatsiya', price: srvMatch?.price || 0, durationMinutes: duration },
+    date: dateStr,
+    startTime: startDateObj.toISOString(),
+    endTime: endDateObj.toISOString(),
     status: 'PENDING',
-    isLiveQueue: false
+    isLiveQueue: false,
+    createdAt: new Date().toISOString()
   };
 
   try {
@@ -300,6 +309,31 @@ app.post('/api/web/book', async (req, res) => {
 
   appointmentsStore.unshift(newAppointment);
   res.status(201).json(newAppointment);
+});
+
+// Shifokor va sana bo'yicha band soatlarni olish (Admin bilan aloqa)
+app.get('/api/web/busy-slots', (req, res) => {
+  const { doctorId, date } = req.query;
+  
+  const busyApps = appointmentsStore.filter(a => {
+    if (a.status === 'CANCELLED') return false;
+    if (doctorId && a.doctorId !== doctorId) return false;
+    if (date && !a.startTime.startsWith(String(date))) return false;
+    return true;
+  });
+
+  const occupiedSlots = busyApps.map(a => ({
+    id: a.id,
+    doctorId: a.doctorId,
+    doctorName: `${a.doctor?.firstName || ''} ${a.doctor?.lastName || ''}`.trim(),
+    startTime: a.startTime,
+    endTime: a.endTime,
+    serviceName: a.service?.name,
+    durationMinutes: a.service?.durationMinutes || 30,
+    status: a.status
+  }));
+
+  res.json(occupiedSlots);
 });
 
 // Jonli navbat qo'shish (Qabulxonadan)
