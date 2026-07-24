@@ -212,7 +212,7 @@ export default function App() {
   const [services] = useState<Service[]>(DEFAULT_SERVICES);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'doctors' | 'teeth-chart'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'doctors' | 'teeth-chart' | 'director'>('dashboard');
   const [periodFilter] = useState<'TODAY' | 'YESTERDAY' | 'MONTH' | 'ALL'>('TODAY');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -825,6 +825,19 @@ export default function App() {
           <button className={`tab-btn ${activeTab === 'doctors' ? 'active' : ''}`} onClick={() => setActiveTab('doctors')}>
             <Stethoscope size={18} /> Shifokorlar Rejimi
           </button>
+          {role === 'DIRECTOR' && (
+            <button 
+              className={`tab-btn ${activeTab === 'director' ? 'active' : ''}`} 
+              onClick={() => setActiveTab('director')}
+              style={{ 
+                background: activeTab === 'director' ? 'linear-gradient(135deg, #7e22ce, #a855f7)' : 'rgba(126,34,206,0.1)', 
+                color: activeTab === 'director' ? 'white' : '#7e22ce',
+                fontWeight: 800 
+              }}
+            >
+              👑 Director Executive Analitika
+            </button>
+          )}
         </div>
 
         {/* TAB 1: 3-COLUMN REFINED LIVE CRM DASHBOARD */}
@@ -1309,6 +1322,243 @@ export default function App() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* TAB 5 (PRO ENTERPRISE): DIRECTOR EXECUTIVE COMMAND CENTER */}
+        {activeTab === 'director' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* EXECUTIVE HERO BANNER */}
+            <div className="card" style={{ background: 'linear-gradient(135deg, #4c1d95, #7e22ce, #9333ea)', color: 'white', padding: '28px', borderRadius: '28px', boxShadow: '0 15px 35px rgba(126, 34, 206, 0.25)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.9 }}>
+                    👑 EXECUTIVE CLINIC DASHBOARD • STRATEGIK DIREKTOR REJIMI
+                  </div>
+                  <h2 style={{ fontSize: '26px', fontWeight: 900, marginTop: '4px' }}>
+                    Gavhar Stomatologiya Markaziy Analitikasi
+                  </h2>
+                  <p style={{ fontSize: '14px', opacity: 0.9, marginTop: '6px' }}>
+                    Moliyaviy tushumlar, shifokorlar unumdorligi, xizmatlar rentabelligi va klinika xodimlari nazorati
+                  </p>
+                </div>
+
+                <button 
+                  className="btn btn-sm" 
+                  onClick={() => window.print()}
+                  style={{ background: 'white', color: '#6b21a8', fontWeight: 800, padding: '12px 20px', borderRadius: '14px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
+                >
+                  🖨️ Rasmiy Direktor Hisobotini Chop Etish (Print PDF)
+                </button>
+              </div>
+            </div>
+
+            {/* EXECUTIVE 4-METRIC KPI CARDS */}
+            <div className="grid-4">
+              <div className="card" style={{ borderLeft: '5px solid #10b981' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' }}>OYLIK BRUTTO TUSHUM</div>
+                <div style={{ fontSize: '22px', fontWeight: 900, color: '#10b981', marginTop: '6px' }}>
+                  84,500,000 UZS
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#10b981', fontWeight: 700, marginTop: '4px' }}>
+                  ⬆️ +18.4% o'tgan oyga nisbatan
+                </div>
+              </div>
+
+              <div className="card" style={{ borderLeft: '5px solid #0284c7' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' }}>KLINIKA SOF FOYDASI (70%)</div>
+                <div style={{ fontSize: '22px', fontWeight: 900, color: '#0284c7', marginTop: '6px' }}>
+                  59,150,000 UZS
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#0284c7', fontWeight: 700, marginTop: '4px' }}>
+                  💎 Yuqori Rentabellik Ko'rsatkichi
+                </div>
+              </div>
+
+              <div className="card" style={{ borderLeft: '5px solid #f59e0b' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' }}>QABUL QILINGAN BEMORLAR</div>
+                <div style={{ fontSize: '22px', fontWeight: 900, color: '#d97706', marginTop: '6px' }}>
+                  148 ta Bemor
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#d97706', fontWeight: 700, marginTop: '4px' }}>
+                  👥 Kunlik o'rtacha 8-12 bemor
+                </div>
+              </div>
+
+              <div className="card" style={{ borderLeft: '5px solid #7e22ce' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' }}>BEMORLAR QANOATLANISHI (NPS)</div>
+                <div style={{ fontSize: '22px', fontWeight: 900, color: '#7e22ce', marginTop: '6px' }}>
+                  98.6% Pozitiv
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#7e22ce', fontWeight: 700, marginTop: '4px' }}>
+                  ⭐ 5.0 / 5.0 Baho (Telegram so'rovnoma)
+                </div>
+              </div>
+            </div>
+
+            {/* DOCTOR PERFORMANCE LEADERBOARD TABLE */}
+            <div className="card">
+              <div className="card-title">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: 800 }}>
+                  👨‍⚕️ Shifokorlar Ish Unumdorligi & Moliyaviy Leaderboard
+                </span>
+                <span className="badge badge-purple">PRO ANALITIKA</span>
+              </div>
+
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                Har bir shifokor keltirgan jami daromad, bemorlar soni va ularga ajratilgan 10% rag'batlantirish bonusi:
+              </p>
+
+              <table className="pro-table">
+                <thead>
+                  <tr>
+                    <th>O'RIN</th>
+                    <th>SHIFOKOR</th>
+                    <th>MUTAXASSISLIK</th>
+                    <th>BEMORLAR</th>
+                    <th>JAMI TUSHUM</th>
+                    <th>O'RTACHA VAQT</th>
+                    <th>BONUS (10%)</th>
+                    <th>HOLATI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>🥇 #1</b></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                        <b>Dr. Torabek Ahmedov</b>
+                      </div>
+                    </td>
+                    <td>Bosh Stomatolog-Implantolog</td>
+                    <td><b>42 ta</b></td>
+                    <td><b style={{ color: '#10b981' }}>45,000,000 UZS</b></td>
+                    <td>42 daqiqa</td>
+                    <td><span className="badge badge-success">4,500,000 UZS</span></td>
+                    <td><span className="badge badge-success">🟢 ISHDA</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>🥈 #2</b></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <img src="https://images.unsplash.com/photo-1594824813566-78a99478f7e8?auto=format&fit=crop&q=80&w=150" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                        <b>Dr. Malika Umurova</b>
+                      </div>
+                    </td>
+                    <td>Estetik Stomatolog-Ortodont</td>
+                    <td><b>38 ta</b></td>
+                    <td><b style={{ color: '#10b981' }}>24,500,000 UZS</b></td>
+                    <td>45 daqiqa</td>
+                    <td><span className="badge badge-success">2,450,000 UZS</span></td>
+                    <td><span className="badge badge-primary">🟡 KRESLODA</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>🥉 #3</b></td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <img src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=150" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                        <b>Dr. Jamshid Karimov</b>
+                      </div>
+                    </td>
+                    <td>Terapevt-Endodontist</td>
+                    <td><b>29 ta</b></td>
+                    <td><b style={{ color: '#10b981' }}>15,000,000 UZS</b></td>
+                    <td>35 daqiqa</td>
+                    <td><span className="badge badge-success">1,500,000 UZS</span></td>
+                    <td><span className="badge badge-gray">⚪ DAMDA</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* SERVICE REVENUE BREAKDOWN & STAFF CREDENTIALS MANAGER */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              
+              {/* SERVICE BREAKDOWN */}
+              <div className="card">
+                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>
+                  📊 Xizmatlar Bo'yicha Tushum Taqsimoti
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                      <span>🦷 Swiss Implantatsiya (Straumann)</span>
+                      <span>40.5 mln UZS (48%)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '10px', borderRadius: '10px', background: 'var(--table-head-bg)', overflow: 'hidden' }}>
+                      <div style={{ width: '48%', height: '100%', background: '#0284c7', borderRadius: '10px' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                      <span>✨ E-Max Keramik Vinirlar</span>
+                      <span>22.4 mln UZS (26%)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '10px', borderRadius: '10px', background: 'var(--table-head-bg)', overflow: 'hidden' }}>
+                      <div style={{ width: '26%', height: '100%', background: '#7e22ce', borderRadius: '10px' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                      <span>⚡ Zoom 4 Lazer Oqartirish</span>
+                      <span>13.2 mln UZS (16%)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '10px', borderRadius: '10px', background: 'var(--table-head-bg)', overflow: 'hidden' }}>
+                      <div style={{ width: '16%', height: '100%', background: '#f59e0b', borderRadius: '10px' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                      <span>🦷 Karies & Mikroskop Davolash</span>
+                      <span>8.4 mln UZS (10%)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '10px', borderRadius: '10px', background: 'var(--table-head-bg)', overflow: 'hidden' }}>
+                      <div style={{ width: '10%', height: '100%', background: '#10b981', borderRadius: '10px' }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAFF & CREDENTIALS SECURITY MANAGER */}
+              <div className="card">
+                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>
+                  🔐 Klinika Xodimlari & Kalitlar Xavfsizligi
+                </h3>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '14px' }}>👑 Bosh Direktor (CEO)</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Login: <code>director</code> | Parol: <code>director123</code></div>
+                    </div>
+                    <span className="badge badge-purple">TO'LIQ RUXSAT</span>
+                  </div>
+
+                  <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '14px' }}>💼 Kassa & Qabul Admini</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Login: <code>admin</code> | Parol: <code>admin123</code></div>
+                    </div>
+                    <span className="badge badge-primary">OPERATSION</span>
+                  </div>
+
+                  <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '14px' }}>👨‍⚕️ Bosh Shifokor (Doctor Panel)</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Login: <code>doctor</code> | Parol: <code>doctor123</code></div>
+                    </div>
+                    <span className="badge badge-success">TIBBIY RUXSAT</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
           </div>
         )}
 
