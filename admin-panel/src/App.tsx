@@ -277,8 +277,49 @@ export default function App() {
     }
   };
 
-  // Appointment Status Transition
+  // Appointment Status Transition & Early Completion Handling
+  const [earlyCallModal, setEarlyCallModal] = useState<{
+    completedApp: Appointment;
+    nextApp: Appointment | null;
+    savedMinutes: number;
+  } | null>(null);
+
   const updateAppointmentStatus = (id: string, newStatus: Appointment['status']) => {
+    const targetApp = appointments.find(a => a.id === id);
+    
+    // Check if finishing early
+    if (newStatus === 'COMPLETED' && targetApp && targetApp.status === 'IN_PROGRESS') {
+      const scheduledEndMs = new Date(targetApp.endTime).getTime();
+      const nowMs = Date.now();
+      const diffMinutes = Math.round((scheduledEndMs - nowMs) / 60000);
+
+      // Find next confirmed patient for this doctor
+      const nextInQueue = appointments.find(a => 
+        a.id !== id && 
+        a.doctorId === targetApp.doctorId && 
+        (a.status === 'CONFIRMED' || a.status === 'PENDING')
+      ) || null;
+
+      // Update endTime to current time so slot frees up instantly
+      const updated = appointments.map(app => app.id === id ? { 
+        ...app, 
+        status: 'COMPLETED' as const,
+        endTime: new Date().toISOString() 
+      } : app);
+
+      setAppointments(updated);
+      localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+      if (diffMinutes > 5) {
+        setEarlyCallModal({
+          completedApp: targetApp,
+          nextApp: nextInQueue,
+          savedMinutes: diffMinutes
+        });
+      }
+      return;
+    }
+
     const updated = appointments.map(app => app.id === id ? { ...app, status: newStatus } : app);
     setAppointments(updated);
     localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
@@ -1095,6 +1136,69 @@ export default function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: EARLY COMPLETION & NEXT PATIENT ADVANCE ALERTS */}
+      {earlyCallModal && (
+        <div className="modal-overlay" onClick={() => setEarlyCallModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ borderTop: '6px solid #10b981' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ⚡ Qabul {earlyCallModal.savedMinutes} Daqiqa Vaqtliroq Tugadi!
+              </h3>
+              <button onClick={() => setEarlyCallModal(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                <XCircle size={22} color="var(--text-muted)" />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px', borderRadius: '16px', background: '#ecfdf5', border: '1px solid #a7f3d0', marginBottom: '20px', color: '#047857', fontSize: '13.5px', lineHeight: '1.5' }}>
+              <b>{earlyCallModal.completedApp.doctor.firstName}</b> qabuli rejadagidan <b>{earlyCallModal.savedMinutes} daqiqa erta</b> yakunlandi. Shifokor bekor o'tirmasligi uchun quyidagi tezkor amallardan birini tanlang:
+            </div>
+
+            {earlyCallModal.nextApp ? (
+              <div style={{ padding: '16px', borderRadius: '16px', border: '1.5px solid var(--primary)', background: '#f0f9ff', marginBottom: '20px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>Navbatdagi Bemor (Jadval bo'yicha)</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, margin: '6px 0 2px' }}>
+                  {earlyCallModal.nextApp.patient.firstName} {earlyCallModal.nextApp.patient.lastName}
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  📞 {earlyCallModal.nextApp.patient.phoneNumber} | ⏰ Rejalashtirilgan: {earlyCallModal.nextApp.startTime.split('T')[1]?.substring(0, 5)}
+                </div>
+
+                <button 
+                  className="btn btn-primary"
+                  style={{ width: '100%' }}
+                  onClick={() => {
+                    setTelegramAlert(`⚡ ${earlyCallModal.nextApp?.patient.firstName} ga Telegram/SMS orqali erta chaqiruv xabari yuborildi!`);
+                    setEarlyCallModal(null);
+                    setTimeout(() => setTelegramAlert(null), 4000);
+                  }}
+                >
+                  <Send size={16} /> Keyingi Bemorni Hozir Chaqirish (Telegram/SMS Yuborish)
+                </button>
+              </div>
+            ) : (
+              <div style={{ padding: '14px', borderRadius: '14px', background: 'var(--table-head-bg)', color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px', textAlign: 'center' }}>
+                Ushbu shifokorda hozircha onlayn yozilgan navbatdagi bemor yo'q.
+              </div>
+            )}
+
+            <button 
+              className="btn btn-success" 
+              style={{ width: '100%', marginBottom: '10px' }}
+              onClick={() => {
+                setEarlyCallModal(null);
+                setNewAppointmentModal(true);
+              }}
+            >
+              <UserPlus size={16} /> Jonli (Walk-in) Bemor Kiritish
+            </button>
+
+            <button className="btn btn-outline" style={{ width: '100%' }} onClick={() => setEarlyCallModal(null)}>
+              Yopish
+            </button>
           </div>
         </div>
       )}
