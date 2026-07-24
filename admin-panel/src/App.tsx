@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   BarChart3, 
   Stethoscope, 
@@ -215,9 +215,11 @@ export default function App() {
     if (autoLogin === 'admin') {
       setRole('ADMIN');
       localStorage.setItem('crm_role', 'ADMIN');
+      setActiveTab('dashboard');
     } else if (autoLogin === 'director') {
       setRole('DIRECTOR');
       localStorage.setItem('crm_role', 'DIRECTOR');
+      setActiveTab('director');
     }
   }, []);
 
@@ -233,8 +235,47 @@ export default function App() {
     return INITIAL_APPOINTMENTS;
   });
 
-  const [doctors, setDoctors] = useState<Doctor[]>(DEFAULT_DOCTORS);
-  const [services, setServices] = useState<Service[]>(DEFAULT_SERVICES);
+  const [doctors, setDoctors] = useState<Doctor[]>(() => {
+    const saved = localStorage.getItem('stoma_crm_doctors');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_DOCTORS;
+  });
+
+  const [services, setServices] = useState<Service[]>(() => {
+    const saved = localStorage.getItem('stoma_crm_services');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_SERVICES;
+  });
+
+  const [isDirty, setIsDirty] = useState(false);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setIsDirty(true);
+  }, [doctors, services, appointments]);
+
+  const handleSaveData = () => {
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(appointments));
+    localStorage.setItem('stoma_crm_doctors', JSON.stringify(doctors));
+    localStorage.setItem('stoma_crm_services', JSON.stringify(services));
+    setIsDirty(false);
+    setTelegramAlert('✅ Barcha o\'zgarishlar muvaffaqiyatli saqlandi!');
+    setTimeout(() => setTelegramAlert(null), 3000);
+  };
 
   // Director Management Modal States
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -319,7 +360,9 @@ export default function App() {
   };
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'doctors' | 'teeth-chart' | 'director'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'doctors' | 'teeth-chart' | 'director'>(
+    () => localStorage.getItem('crm_role') === 'DIRECTOR' ? 'director' : 'dashboard'
+  );
   const [periodFilter] = useState<'TODAY' | 'YESTERDAY' | 'MONTH' | 'ALL'>('TODAY');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -953,25 +996,28 @@ export default function App() {
 
         {/* Tab Header */}
         <div className="tabs-header">
-          <button className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <BarChart3 size={18} /> 3-Ustunli Jonli Boshqaruv
-          </button>
-          <button className={`tab-btn ${activeTab === 'appointments' ? 'active' : ''}`} onClick={() => setActiveTab('appointments')}>
-            <Calendar size={18} /> Barcha Qabullar Ro'yxati ({filteredAppointments.length})
-          </button>
-          <button className={`tab-btn ${activeTab === 'teeth-chart' ? 'active' : ''}`} onClick={() => setActiveTab('teeth-chart')}>
-            <Sparkles size={18} /> 32-Tish Odontogramma Chart
-          </button>
-          <button className={`tab-btn ${activeTab === 'doctors' ? 'active' : ''}`} onClick={() => setActiveTab('doctors')}>
-            <Stethoscope size={18} /> Shifokorlar Rejimi
-          </button>
+          {role === 'ADMIN' && (
+            <>
+              <button className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+                <BarChart3 size={18} /> 3-Ustunli Jonli Boshqaruv
+              </button>
+              <button className={`tab-btn ${activeTab === 'appointments' ? 'active' : ''}`} onClick={() => setActiveTab('appointments')}>
+                <Calendar size={18} /> Barcha Qabullar Ro'yxati ({filteredAppointments.length})
+              </button>
+              <button className={`tab-btn ${activeTab === 'teeth-chart' ? 'active' : ''}`} onClick={() => setActiveTab('teeth-chart')}>
+                <Sparkles size={18} /> 32-Tish Odontogramma Chart
+              </button>
+              <button className={`tab-btn ${activeTab === 'doctors' ? 'active' : ''}`} onClick={() => setActiveTab('doctors')}>
+                <Stethoscope size={18} /> Shifokorlar Rejimi
+              </button>
+            </>
+          )}
           {role === 'DIRECTOR' && (
             <button 
-              className={`tab-btn ${activeTab === 'director' ? 'active' : ''}`} 
-              onClick={() => setActiveTab('director')}
+              className="tab-btn active" 
               style={{ 
-                background: activeTab === 'director' ? 'linear-gradient(135deg, #7e22ce, #a855f7)' : 'rgba(126,34,206,0.1)', 
-                color: activeTab === 'director' ? 'white' : '#7e22ce',
+                background: 'linear-gradient(135deg, #7e22ce, #a855f7)', 
+                color: 'white',
                 fontWeight: 800 
               }}
             >
@@ -2550,6 +2596,33 @@ export default function App() {
           </div>
         ) : null}
       </div>
+
+      {/* FLOATING SAVE BUTTON (Appears only when changes are made) */}
+      {isDirty && (
+        <button 
+          onClick={handleSaveData}
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '50px',
+            border: 'none',
+            boxShadow: '0 10px 25px rgba(16, 185, 129, 0.4)',
+            fontSize: '16px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}
+        >
+          <span>💾</span> O'zgarishlarni Saqlash
+        </button>
+      )}
 
     </div>
   );
