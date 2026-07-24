@@ -1118,45 +1118,116 @@ export default function App() {
 
             {/* Teeth Grid Upper & Lower */}
             <div style={{ marginBottom: '24px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>YUQORI JAG' (MAXILLA)</div>
-              <div className="teeth-matrix-grid" style={{ marginBottom: '16px' }}>
-                {[18,17,16,15,14,13,12,11, 21,22,23,24,25,26,27,28].map(num => {
-                  const cond = toothConditions.find(t => t.number === num);
-                  const st = cond?.status || 'Sog\'lom';
-                  const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
-                  
-                  return (
-                    <button 
-                      key={num}
-                      className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
-                      onClick={() => setSelectedTooth(num)}
-                    >
-                      <div>{num}</div>
-                      <div style={{ fontSize: '9px', fontWeight: 600 }}>{st.substring(0, 3)}</div>
-                    </button>
-                  );
-                })}
+            {/* Curved Dental Arch Container (Yuqori & Pastki Jag') */}
+            <div className="teeth-arch-container" style={{ marginBottom: '24px' }}>
+              
+              {/* YUQORI JAG' (MAXILLA ARCH) */}
+              <div className="jaw-arch">
+                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🦷 YUQORI JAG' (MAXILLA: 18 - 28)
+                </div>
+                <div className="arch-teeth-row">
+                  {/* Quadrant 1 (Right): 18 -> 11 */}
+                  <div className="quadrant-group">
+                    {[18,17,16,15,14,13,12,11].map(num => {
+                      const cond = toothConditions.find(t => t.number === num);
+                      const st = cond?.status || 'Sog\'lom';
+                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+
+                      return (
+                        <button 
+                          key={num}
+                          type="button"
+                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                          onClick={() => setSelectedTooth(num)}
+                        >
+                          <div>{num}</div>
+                          <div style={{ fontSize: '8.5px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Midline Divider */}
+                  <div className="midline-divider" title="Markaziy Chiziq (Midline)" />
+
+                  {/* Quadrant 2 (Left): 21 -> 28 */}
+                  <div className="quadrant-group">
+                    {[21,22,23,24,25,26,27,28].map(num => {
+                      const cond = toothConditions.find(t => t.number === num);
+                      const st = cond?.status || 'Sog\'lom';
+                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+
+                      return (
+                        <button 
+                          key={num}
+                          type="button"
+                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                          onClick={() => setSelectedTooth(num)}
+                        >
+                          <div>{num}</div>
+                          <div style={{ fontSize: '8.5px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>PASTKI JAG' (MANDIBLE)</div>
-              <div className="teeth-matrix-grid">
-                {[48,47,46,45,44,43,42,41, 31,32,33,34,35,36,37,38].map(num => {
-                  const cond = toothConditions.find(t => t.number === num);
-                  const st = cond?.status || 'Sog\'lom';
-                  const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
-                  
-                  return (
-                    <button 
-                      key={num}
-                      className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
-                      onClick={() => setSelectedTooth(num)}
-                    >
-                      <div>{num}</div>
-                      <div style={{ fontSize: '9px', fontWeight: 600 }}>{st.substring(0, 3)}</div>
-                    </button>
-                  );
-                })}
+              {/* PASTKI JAG' (MANDIBLE ARCH) */}
+              <div className="jaw-arch">
+                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🦷 PASTKI JAG' (MANDIBLE: 48 - 38)
+                </div>
+                <div className="arch-teeth-row">
+                  {/* Quadrant 4 (Right): 48 -> 41 */}
+                  <div className="quadrant-group">
+                    {[48,47,46,45,44,43,42,41].map(num => {
+                      const cond = toothConditions.find(t => t.number === num);
+                      const st = cond?.status || 'Sog\'lom';
+                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+
+                      return (
+                        <button 
+                          key={num}
+                          type="button"
+                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                          onClick={() => setSelectedTooth(num)}
+                        >
+                          <div>{num}</div>
+                          <div style={{ fontSize: '8.5px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Midline Divider */}
+                  <div className="midline-divider" title="Markaziy Chiziq (Midline)" />
+
+                  {/* Quadrant 3 (Left): 31 -> 38 */}
+                  <div className="quadrant-group">
+                    {[31,32,33,34,35,36,37,38].map(num => {
+                      const cond = toothConditions.find(t => t.number === num);
+                      const st = cond?.status || 'Sog\'lom';
+                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+
+                      return (
+                        <button 
+                          key={num}
+                          type="button"
+                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                          onClick={() => setSelectedTooth(num)}
+                        >
+                          <div>{num}</div>
+                          <div style={{ fontSize: '8.5px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+
+            </div>
             </div>
 
             {/* Tooth Diagnosis Control Box */}
@@ -1257,47 +1328,112 @@ export default function App() {
               <Sparkles size={18} color="var(--primary)" /> Bemorning 32-Tish Odontogramma Chart-i (FDI)
             </h4>
 
-            <div style={{ padding: '14px', borderRadius: '16px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', marginBottom: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>YUQORI JAG' (18 - 28)</div>
-              <div className="teeth-matrix-grid" style={{ marginBottom: '12px' }}>
-                {[18,17,16,15,14,13,12,11, 21,22,23,24,25,26,27,28].map(num => {
-                  const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
-                  const st = cond?.status || 'Sog\'lom';
-                  const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
-                  
-                  return (
-                    <button 
-                      key={num}
-                      type="button"
-                      className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
-                      onClick={() => setSelectedTooth(num)}
-                    >
-                      <div>{num}</div>
-                      <div style={{ fontSize: '9px', fontWeight: 600 }}>{st.substring(0, 3)}</div>
-                    </button>
-                  );
-                })}
+            <div className="teeth-arch-container" style={{ marginBottom: '20px' }}>
+              
+              {/* YUQORI JAG' (MAXILLA ARCH) */}
+              <div className="jaw-arch">
+                <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🦷 YUQORI JAG' (18 - 28)
+                </div>
+                <div className="arch-teeth-row">
+                  {/* Quadrant 1 (Right): 18 -> 11 */}
+                  <div className="quadrant-group">
+                    {[18,17,16,15,14,13,12,11].map(num => {
+                      const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
+                      const st = cond?.status || 'Sog\'lom';
+                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+
+                      return (
+                        <button 
+                          key={num}
+                          type="button"
+                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                          onClick={() => setSelectedTooth(num)}
+                        >
+                          <div>{num}</div>
+                          <div style={{ fontSize: '8px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Midline Divider */}
+                  <div className="midline-divider" />
+
+                  {/* Quadrant 2 (Left): 21 -> 28 */}
+                  <div className="quadrant-group">
+                    {[21,22,23,24,25,26,27,28].map(num => {
+                      const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
+                      const st = cond?.status || 'Sog\'lom';
+                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+
+                      return (
+                        <button 
+                          key={num}
+                          type="button"
+                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                          onClick={() => setSelectedTooth(num)}
+                        >
+                          <div>{num}</div>
+                          <div style={{ fontSize: '8px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>PASTKI JAG' (48 - 38)</div>
-              <div className="teeth-matrix-grid" style={{ marginBottom: '12px' }}>
-                {[48,47,46,45,44,43,42,41, 31,32,33,34,35,36,37,38].map(num => {
-                  const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
-                  const st = cond?.status || 'Sog\'lom';
-                  const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
-                  
-                  return (
-                    <button 
-                      key={num}
-                      type="button"
-                      className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
-                      onClick={() => setSelectedTooth(num)}
-                    >
-                      <div>{num}</div>
-                      <div style={{ fontSize: '9px', fontWeight: 600 }}>{st.substring(0, 3)}</div>
-                    </button>
-                  );
-                })}
+              {/* PASTKI JAG' (MANDIBLE ARCH) */}
+              <div className="jaw-arch">
+                <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🦷 PASTKI JAG' (48 - 38)
+                </div>
+                <div className="arch-teeth-row">
+                  {/* Quadrant 4 (Right): 48 -> 41 */}
+                  <div className="quadrant-group">
+                    {[48,47,46,45,44,43,42,41].map(num => {
+                      const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
+                      const st = cond?.status || 'Sog\'lom';
+                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+
+                      return (
+                        <button 
+                          key={num}
+                          type="button"
+                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                          onClick={() => setSelectedTooth(num)}
+                        >
+                          <div>{num}</div>
+                          <div style={{ fontSize: '8px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Midline Divider */}
+                  <div className="midline-divider" />
+
+                  {/* Quadrant 3 (Left): 31 -> 38 */}
+                  <div className="quadrant-group">
+                    {[31,32,33,34,35,36,37,38].map(num => {
+                      const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
+                      const st = cond?.status || 'Sog\'lom';
+                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
+
+                      return (
+                        <button 
+                          key={num}
+                          type="button"
+                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
+                          onClick={() => setSelectedTooth(num)}
+                        >
+                          <div>{num}</div>
+                          <div style={{ fontSize: '8px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {selectedTooth && (
