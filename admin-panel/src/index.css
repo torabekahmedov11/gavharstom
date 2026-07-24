@@ -12,6 +12,20 @@
   --text: #0f172a;
   --text-muted: #64748b;
   --border: #e2e8f0;
+  --header-bg: #ffffff;
+  --table-head-bg: #f8fafc;
+  --modal-bg: rgba(15, 23, 42, 0.6);
+}
+
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --header-bg: #1e293b;
+  --table-head-bg: #0f172a;
+  --modal-bg: rgba(0, 0, 0, 0.8);
 }
 
 * {
@@ -25,11 +39,8 @@
 body {
   background-color: var(--bg);
   color: var(--text);
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(224, 242, 254, 0.5) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(240, 249, 255, 0.5) 0px, transparent 50%);
-  background-attachment: fixed;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3, h4, .title {
@@ -37,18 +48,19 @@ h1, h2, h3, h4, .title {
 }
 
 .container {
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 16px;
 }
 
+/* Modern Header */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  background: white;
-  padding: 20px 24px;
+  background: var(--header-bg);
+  padding: 18px 24px;
   border-radius: 20px;
   box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.05);
   border: 1px solid var(--border);
@@ -62,12 +74,12 @@ h1, h2, h3, h4, .title {
   color: var(--text);
 }
 
-/* Modern Tugmalar */
+/* Modern Buttons */
 .btn {
-  padding: 10px 20px;
+  padding: 10px 18px;
   border-radius: 12px;
   border: none;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -86,6 +98,12 @@ h1, h2, h3, h4, .title {
 
 .btn:active {
   transform: translateY(0);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12.5px;
+  border-radius: 8px;
 }
 
 .btn-primary {
@@ -109,7 +127,7 @@ h1, h2, h3, h4, .title {
 }
 
 .btn-outline {
-  background: white;
+  background: var(--card);
   border: 1.5px solid var(--border);
   color: var(--text);
 }
@@ -119,11 +137,23 @@ h1, h2, h3, h4, .title {
   color: var(--primary);
 }
 
-/* Grid layout */
+/* Grids */
 .grid-2 {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 24px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
 /* Card */
@@ -133,27 +163,22 @@ h1, h2, h3, h4, .title {
   padding: 24px;
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--border);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .card-title {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 800;
   margin-bottom: 18px;
   border-bottom: 1.5px solid var(--border);
   padding-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
   color: var(--text);
 }
 
-/* Queue List */
-.queue-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+/* Queue Item */
 .queue-item {
   display: flex;
   justify-content: space-between;
@@ -161,23 +186,12 @@ h1, h2, h3, h4, .title {
   padding: 16px 20px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: white;
+  background: var(--card);
   transition: all 0.2s ease;
 }
 
 .queue-item:hover {
-  box-shadow: 0 8px 20px rgba(0,0,0,0.04);
-}
-
-.queue-item.active {
-  border-left: 6px solid var(--primary);
-  background: #f0f9ff;
-}
-
-.queue-item.completed {
-  border-left: 6px solid var(--success);
-  background: #f0fdf4;
-  opacity: 0.85;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
 }
 
 .patient-info {
@@ -188,16 +202,8 @@ h1, h2, h3, h4, .title {
 
 .patient-name {
   font-weight: 800;
-  font-size: 17px;
+  font-size: 16px;
   color: var(--text);
-}
-
-.patient-time {
-  color: var(--text-muted);
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 /* Form Controls */
@@ -210,16 +216,17 @@ h1, h2, h3, h4, .title {
   font-weight: 600;
   font-size: 13px;
   margin-bottom: 6px;
-  color: #334155;
+  color: var(--text-muted);
 }
 
 .form-control {
   width: 100%;
-  padding: 12px 14px;
+  padding: 11px 14px;
   border: 1.5px solid var(--border);
   border-radius: 12px;
-  font-size: 15px;
-  background: white;
+  font-size: 14.5px;
+  background: var(--card);
+  color: var(--text);
   transition: all 0.2s;
 }
 
@@ -227,26 +234,6 @@ h1, h2, h3, h4, .title {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
-}
-
-.service-btn {
-  padding: 16px;
-  border: 2px solid var(--border);
-  border-radius: 14px;
-  background: white;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
-  text-align: left;
-  display: flex;
-  justify-content: space-between;
-  transition: all 0.2s;
-}
-
-.service-btn.selected {
-  border-color: var(--primary);
-  background: #e0f2fe;
-  color: var(--primary-dark);
 }
 
 /* Table Design for Pro CRM */
@@ -258,12 +245,12 @@ h1, h2, h3, h4, .title {
 }
 
 .pro-table th {
-  background: #f8fafc;
+  background: var(--table-head-bg);
   padding: 12px 16px;
   text-align: left;
   font-size: 12px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 1.5px solid var(--border);
@@ -276,8 +263,8 @@ h1, h2, h3, h4, .title {
   color: var(--text);
 }
 
-.pro-table tr:last-child td {
-  border-bottom: none;
+.pro-table tr:hover td {
+  background: rgba(2, 132, 199, 0.02);
 }
 
 /* Badge pills */
@@ -287,17 +274,130 @@ h1, h2, h3, h4, .title {
   gap: 4px;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
 }
 
 .badge-success { background: #dcfce7; color: #15803d; }
 .badge-primary { background: #e0f2fe; color: #0369a1; }
 .badge-warning { background: #fef3c7; color: #b45309; }
+.badge-danger { background: #fee2e2; color: #b91c1c; }
 .badge-purple { background: #f3e8ff; color: #6b21a8; }
+.badge-gray { background: #f1f5f9; color: #475569; }
 
-@media (max-width: 900px) {
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
+/* Tooth Matrix Odontogram */
+.teeth-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 6px;
+  padding: 12px;
+  background: var(--table-head-bg);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
 }
+
+.tooth-btn {
+  aspect-ratio: 1;
+  min-width: 38px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tooth-btn:hover {
+  transform: scale(1.08);
+  border-color: var(--primary);
+}
+
+.tooth-btn.selected {
+  outline: 3px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.tooth-btn.status-healthy { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.tooth-btn.status-caries { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+.tooth-btn.status-filling { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.tooth-btn.status-veneer { background: #faf5ff; border-color: #e9d5ff; color: #7e22ce; }
+.tooth-btn.status-implant { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.tooth-btn.status-extracted { background: #f1f5f9; border-color: #cbd5e1; color: #94a3b8; text-decoration: line-through; }
+
+/* Filter Tabs */
+.tabs-header {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1.5px solid var(--border);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.tab-btn {
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  border-bottom: 3.5px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--modal-bg);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-content {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 28px;
+  max-width: 650px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 1024px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: 1fr; }
+  .teeth-matrix-grid { grid-template-columns: repeat(8, 1fr); }
+}
+
