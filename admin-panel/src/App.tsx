@@ -218,6 +218,11 @@ export default function App() {
   const [selectedPatient, setSelectedPatient] = useState<Appointment | null>(null);
   const [newAppointmentModal, setNewAppointmentModal] = useState(false);
   const [telegramAlert, setTelegramAlert] = useState<string | null>(null);
+  const [earlyCallModal, setEarlyCallModal] = useState<{
+    completedApp: Appointment;
+    nextApp: Appointment | null;
+    savedMinutes: number;
+  } | null>(null);
 
   // Odontogram Teeth State
   const [selectedTooth, setSelectedTooth] = useState<number | null>(11);
@@ -277,12 +282,45 @@ export default function App() {
     }
   };
 
-  // Appointment Status Transition & Early Completion Handling
-  const [earlyCallModal, setEarlyCallModal] = useState<{
-    completedApp: Appointment;
-    nextApp: Appointment | null;
-    savedMinutes: number;
-  } | null>(null);
+  // Cascade Shift Algorithm: Shift all subsequent appointments forward by savedMinutes
+  const shiftSubsequentAppointmentsForward = (completedApp: Appointment, savedMinutes: number) => {
+    const shiftMs = savedMinutes * 60000;
+    const completedEndMs = new Date(completedApp.endTime).getTime();
+
+    const updated = appointments.map(app => {
+      if (app.id === completedApp.id) {
+        return {
+          ...app,
+          status: 'COMPLETED' as const,
+          endTime: new Date().toISOString()
+        };
+      }
+
+      const appStartMs = new Date(app.startTime).getTime();
+      if (
+        app.doctorId === completedApp.doctorId &&
+        (app.status === 'CONFIRMED' || app.status === 'PENDING') &&
+        appStartMs >= completedEndMs - 60000
+      ) {
+        const newStartMs = appStartMs - shiftMs;
+        const newEndMs = new Date(app.endTime).getTime() - shiftMs;
+
+        return {
+          ...app,
+          startTime: new Date(newStartMs).toISOString(),
+          endTime: new Date(newEndMs).toISOString()
+        };
+      }
+
+      return app;
+    });
+
+    setAppointments(updated);
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+    setTelegramAlert(`⏩ Navbatlar ${savedMinutes} daqiqa oldinga surildi! Oxirgi bo'sh vaqt ham oldinga o'tdi.`);
+    setTimeout(() => setTelegramAlert(null), 5000);
+  };
 
   const updateAppointmentStatus = (id: string, newStatus: Appointment['status']) => {
     const targetApp = appointments.find(a => a.id === id);
@@ -293,14 +331,21 @@ export default function App() {
       const nowMs = Date.now();
       const diffMinutes = Math.round((scheduledEndMs - nowMs) / 60000);
 
-      // Find next confirmed patient for this doctor
       const nextInQueue = appointments.find(a => 
         a.id !== id && 
         a.doctorId === targetApp.doctorId && 
         (a.status === 'CONFIRMED' || a.status === 'PENDING')
       ) || null;
 
-      // Update endTime to current time so slot frees up instantly
+      if (diffMinutes > 5) {
+        setEarlyCallModal({
+          completedApp: targetApp,
+          nextApp: nextInQueue,
+          savedMinutes: diffMinutes
+        });
+        return;
+      }
+
       const updated = appointments.map(app => app.id === id ? { 
         ...app, 
         status: 'COMPLETED' as const,
@@ -309,14 +354,6 @@ export default function App() {
 
       setAppointments(updated);
       localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
-
-      if (diffMinutes > 5) {
-        setEarlyCallModal({
-          completedApp: targetApp,
-          nextApp: nextInQueue,
-          savedMinutes: diffMinutes
-        });
-      }
       return;
     }
 
@@ -1154,7 +1191,7 @@ export default function App() {
             </div>
 
             <div style={{ padding: '16px', borderRadius: '16px', background: '#ecfdf5', border: '1px solid #a7f3d0', marginBottom: '20px', color: '#047857', fontSize: '13.5px', lineHeight: '1.5' }}>
-              <b>{earlyCallModal.completedApp.doctor.firstName}</b> qabuli rejadagidan <b>{earlyCallModal.savedMinutes} daqiqa erta</b> yakunlandi. Shifokor bekor o'tirmasligi uchun quyidagi tezkor amallardan birini tanlang:
+              <b>{earlyCallModal.completedApp.doctor.firstName}</b> qabuli rejadagidan <b>{earlyCallModal.savedMinutes} daqiqa erta</b> yakunlandi. Navbatdagi barcha bemorlar va bo'sh soatlarni avtomatik oldinga surishingiz mumkin!
             </div>
 
             {earlyCallModal.nextApp ? (
@@ -1169,14 +1206,25 @@ export default function App() {
 
                 <button 
                   className="btn btn-primary"
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', marginBottom: '8px', background: 'linear-gradient(135deg, #0284c7, #06b6d4)' }}
+                  onClick={() => {
+                    shiftSubsequentAppointmentsForward(earlyCallModal.completedApp, earlyCallModal.savedMinutes);
+                    setEarlyCallModal(null);
+                  }}
+                >
+                  <ChevronRight size={16} /> ⏩ Barcha Navbatlarni {earlyCallModal.savedMinutes} daqiqa OLDINGA SURISH (Avto-Siljitish)
+                </button>
+
+                <button 
+                  className="btn btn-outline"
+                  style={{ width: '100%', fontSize: '12.5px' }}
                   onClick={() => {
                     setTelegramAlert(`⚡ ${earlyCallModal.nextApp?.patient.firstName} ga Telegram/SMS orqali erta chaqiruv xabari yuborildi!`);
                     setEarlyCallModal(null);
                     setTimeout(() => setTelegramAlert(null), 4000);
                   }}
                 >
-                  <Send size={16} /> Keyingi Bemorni Hozir Chaqirish (Telegram/SMS Yuborish)
+                  <Send size={14} /> Shunchaki Telegram/SMS Erta Xabar Yuborish
                 </button>
               </div>
             ) : (
