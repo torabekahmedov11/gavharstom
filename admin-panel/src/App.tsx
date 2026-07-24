@@ -242,6 +242,19 @@ export default function App() {
   const [newAppDate, setNewAppDate] = useState(TODAY);
   const [newAppTime, setNewAppTime] = useState('10:00');
 
+  // Pre-scheduled Surgery Block Modal State
+  const [surgeryBlockModal, setSurgeryBlockModal] = useState(false);
+  const [surgDate, setSurgDate] = useState('2026-07-28');
+  const [surgTime, setSurgTime] = useState('09:00');
+  const [surgDurationHours, setSurgDurationHours] = useState(2);
+  const [surgDoctorIds, setSurgDoctorIds] = useState<string[]>(['d1', 'd2']);
+  const [surgTitle, setSurgTitle] = useState('Murakkab Implant & Sinus-Lift Operatsiyasi');
+
+  // Follow-up Re-visit Booking Modal State
+  const [followUpModal, setFollowUpModal] = useState<Appointment | null>(null);
+  const [followUpDays, setFollowUpDays] = useState(2);
+  const [followUpTime, setFollowUpTime] = useState('10:00');
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
@@ -423,6 +436,79 @@ export default function App() {
     setNewPatientPhone('');
   };
 
+  // Save Multi-Doctor Pre-Scheduled Surgery Block
+  const handleSaveSurgeryBlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (surgDoctorIds.length === 0) return;
+
+    const startIso = `${surgDate}T${surgTime}:00.000Z`;
+    const endIso = new Date(new Date(startIso).getTime() + surgDurationHours * 3600000).toISOString();
+
+    const createdBlocks: Appointment[] = surgDoctorIds.map(docId => {
+      const doc = doctors.find(d => d.id === docId);
+      return {
+        id: `surg_block_${docId}_${Date.now()}`,
+        patientId: `sys_surg_${Date.now()}`,
+        patient: {
+          firstName: `🩸 REJALASHTIRILGAN OPERATSIYA`,
+          lastName: `(${surgDurationHours} soat)`,
+          phoneNumber: `REJALASH`
+        },
+        doctorId: docId,
+        doctor: { firstName: doc?.firstName || '', lastName: doc?.lastName || '' },
+        service: { name: `🩸 ${surgTitle}`, price: 0, durationMinutes: surgDurationHours * 60 },
+        startTime: startIso,
+        endTime: endIso,
+        status: 'CONFIRMED',
+        isLiveQueue: false,
+        createdAt: new Date().toISOString()
+      };
+    });
+
+    const updated = [...createdBlocks, ...appointments];
+    setAppointments(updated);
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+    setTelegramAlert(`🩸 Operatsiya vaqti muvaffaqiyatli band qilindi! (${surgDate} soat ${surgTime} da ${surgDurationHours} soat)`);
+    setTimeout(() => setTelegramAlert(null), 5000);
+    setSurgeryBlockModal(false);
+  };
+
+  // Save Follow-up Re-visit Appointment (e.g. 2 days later)
+  const handleSaveFollowUp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followUpModal) return;
+
+    const targetDate = new Date(Date.now() + followUpDays * 86400000).toISOString().split('T')[0];
+    const startIso = `${targetDate}T${followUpTime}:00.000Z`;
+    const endIso = new Date(new Date(startIso).getTime() + 30 * 60000).toISOString();
+
+    const followUpApp: Appointment = {
+      id: `app_followup_${Date.now()}`,
+      patientId: followUpModal.patientId,
+      patient: {
+        ...followUpModal.patient,
+        symptom: `🔄 Qayta Qabul va Ko'rik (${followUpDays} kundan keyingi)`
+      },
+      doctorId: followUpModal.doctorId,
+      doctor: followUpModal.doctor,
+      service: { name: "🔄 Takroriy Qabul va Ko'rik (To'langan)", price: 0, durationMinutes: 30 },
+      startTime: startIso,
+      endTime: endIso,
+      status: 'CONFIRMED',
+      isLiveQueue: false,
+      createdAt: new Date().toISOString()
+    };
+
+    const updated = [followUpApp, ...appointments];
+    setAppointments(updated);
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+    setTelegramAlert(`🔄 ${followUpModal.patient.firstName} uchun ${targetDate} kuni soat ${followUpTime} ga takroriy qabul saqlandi!`);
+    setTimeout(() => setTelegramAlert(null), 5000);
+    setFollowUpModal(null);
+  };
+
   // Filter Appointments
   const filteredAppointments = appointments.filter(app => {
     const appDate = app.startTime.split('T')[0];
@@ -553,6 +639,10 @@ export default function App() {
 
             <button className="btn btn-primary btn-sm" onClick={() => setNewAppointmentModal(true)}>
               <Plus size={16} /> Jonli Navbat Qo'shish
+            </button>
+
+            <button className="btn btn-danger btn-sm" onClick={() => setSurgeryBlockModal(true)} style={{ background: 'linear-gradient(135deg, #7e22ce, #a855f7)' }}>
+              🩸 Operatsiyani Band Qilish
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'var(--table-head-bg)', borderRadius: '12px', border: '1px solid var(--border)' }}>
@@ -1087,6 +1177,18 @@ export default function App() {
               ))}
             </div>
 
+            <button 
+              className="btn btn-warning" 
+              style={{ width: '100%', marginBottom: '10px' }} 
+              onClick={() => {
+                const pt = selectedPatient;
+                setSelectedPatient(null);
+                setFollowUpModal(pt);
+              }}
+            >
+              🔄 Takroriy Qabul Yozish (2 kundan keyin)
+            </button>
+
             <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setSelectedPatient(null)}>
               Yopish
             </button>
@@ -1270,6 +1372,218 @@ export default function App() {
             <button className="btn btn-outline" style={{ width: '100%' }} onClick={() => setEarlyCallModal(null)}>
               Yopish
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: PRE-SCHEDULED MULTI-DOCTOR SURGERY BLOCK MODAL */}
+      {surgeryBlockModal && (
+        <div className="modal-overlay" onClick={() => setSurgeryBlockModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ borderTop: '6px solid #7e22ce' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#7e22ce', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🩸 Rejalashtirilgan Operatsiyani Band Qilish
+              </h3>
+              <button onClick={() => setSurgeryBlockModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                <XCircle size={22} color="var(--text-muted)" />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Shifokor ko'rsatmasi bilan rejalashtirilgan murakkab operatsiyaga bir yoki bir nechta shifokorlarni birdaniga band qiling. Saytda bu soatlar avtomatik tarzda band bo'ladi.
+            </p>
+
+            <form onSubmit={handleSaveSurgeryBlock}>
+              <div className="form-group">
+                <label className="form-label">Operatsiya Nomi / Turi</label>
+                <input 
+                  type="text" 
+                  className="form-control"
+                  value={surgTitle}
+                  onChange={e => setSurgTitle(e.target.value)}
+                  placeholder="masalan: Sinus-Lift va 4x Implant"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Operatsiya Sanasi</label>
+                  <input 
+                    type="date" 
+                    className="form-control"
+                    value={surgDate}
+                    onChange={e => setSurgDate(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Boshlanish Vaqti</label>
+                  <input 
+                    type="time" 
+                    className="form-control"
+                    value={surgTime}
+                    onChange={e => setSurgTime(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Operatsiya Davomiyligi (Soat)</label>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  {[1, 2, 3, 4].map(h => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => setSurgDurationHours(h)}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: surgDurationHours === h ? '2px solid #7e22ce' : '1px solid #cbd5e1',
+                        background: surgDurationHours === h ? '#f3e8ff' : 'var(--card)',
+                        color: surgDurationHours === h ? '#7e22ce' : '#334155',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {h} Soat
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label">Ishtirok Etuvchi Shifokorlar (Ko'p tanlash mumkin)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                  {doctors.map(doc => {
+                    const isSelected = surgDoctorIds.includes(doc.id);
+                    return (
+                      <label 
+                        key={doc.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: isSelected ? '2px solid #7e22ce' : '1px solid var(--border)',
+                          background: isSelected ? '#f3e8ff' : 'var(--card)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <input 
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={e => {
+                            if (e.target.checked) setSurgDoctorIds([...surgDoctorIds, doc.id]);
+                            else setSurgDoctorIds(surgDoctorIds.filter(id => id !== doc.id));
+                          }}
+                        />
+                        <span style={{ fontWeight: 700, fontSize: '13px' }}>{doc.firstName} {doc.lastName} ({doc.specialization})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setSurgeryBlockModal(false)}>
+                  Bekor qilish
+                </button>
+                <button type="submit" className="btn btn-danger" style={{ flex: 1, background: 'linear-gradient(135deg, #7e22ce, #a855f7)' }}>
+                  Operatsiyani Band Qilish
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: FOLLOW-UP RE-VISIT BOOKING MODAL (e.g. 2 days later) */}
+      {followUpModal && (
+        <div className="modal-overlay" onClick={() => setFollowUpModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ borderTop: '6px solid #f59e0b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🔄 Takroriy Qabulga Yozish
+              </h3>
+              <button onClick={() => setFollowUpModal(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                <XCircle size={22} color="var(--text-muted)" />
+              </button>
+            </div>
+
+            <div style={{ padding: '14px', borderRadius: '14px', background: '#fffbe6', border: '1px solid #fef08a', color: '#b45309', fontSize: '13px', marginBottom: '16px' }}>
+              Bemor <b>{followUpModal.patient.firstName} {followUpModal.patient.lastName}</b> bugungi muolaja to'lovini amalga oshirdi. Shifokor tavsiyasiga ko'ra takroriy qabul kuni va vaqtini belgilang.
+            </div>
+
+            <form onSubmit={handleSaveFollowUp}>
+              <div className="form-group">
+                <label className="form-label">Necha kundan keyin keladi?</label>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  {[
+                    { label: "2 kundan keyin", days: 2 },
+                    { label: "3 kundan keyin", days: 3 },
+                    { label: "1 haftadan keyin", days: 7 }
+                  ].map(item => (
+                    <button
+                      key={item.days}
+                      type="button"
+                      onClick={() => setFollowUpDays(item.days)}
+                      style={{
+                        flex: 1,
+                        padding: '10px 6px',
+                        borderRadius: '10px',
+                        border: followUpDays === item.days ? '2px solid #d97706' : '1px solid #cbd5e1',
+                        background: followUpDays === item.days ? '#fffbe6' : 'var(--card)',
+                        color: followUpDays === item.days ? '#b45309' : '#334155',
+                        fontWeight: 800,
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label">Qabul Vaqti (Bo'sh soatni tanlang)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px', marginTop: '6px' }}>
+                  {CANDIDATE_TIMES.map(tStr => (
+                    <button
+                      key={tStr}
+                      type="button"
+                      onClick={() => setFollowUpTime(tStr)}
+                      style={{
+                        padding: '8px',
+                        borderRadius: '10px',
+                        border: followUpTime === tStr ? '2px solid #d97706' : '1px solid #cbd5e1',
+                        background: followUpTime === tStr ? '#d97706' : 'var(--card)',
+                        color: followUpTime === tStr ? 'white' : '#334155',
+                        fontWeight: 800,
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {tStr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setFollowUpModal(null)}>
+                  Bekor qilish
+                </button>
+                <button type="submit" className="btn btn-warning" style={{ flex: 1 }}>
+                  Takroriy Navbatni Saqlash
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
