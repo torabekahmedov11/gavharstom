@@ -706,6 +706,11 @@ function App() {
                 💡 <b>Tishingizga nima bo'lganini aniq bilmaysizmi?</b> Xavotir olmang! Xizmat bo'limidan <b>"Bepul Konsultatsiya & Diagnostika"</b>ni tanlang. Shifokorimiz joyida ko'rib, aniq tashxis va tavsiya beradi!
               </div>
 
+              {/* Surgery Lock Warning Tip if Doctor is in Surgery */}
+              <div style={{ padding: '12px 16px', borderRadius: '14px', background: '#fff1f2', border: '1px solid #fecdd3', fontSize: '0.82rem', color: '#be123c', marginBottom: '1.2rem', lineHeight: '1.5' }}>
+                🩸 <b>Eslatma:</b> Shifokorimiz murakkab operatsiyaga kirgan taqdirda, bemorlar salomatligi va xavfsizligi ustuvor hisoblanadi. Vaqt biroz cho'zilsa, adminlarimiz Telegram orqali sizni oldindan ogohlantiradi!
+              </div>
+
               {/* 2. Select Service */}
               <div className="form-group">
                 <label className="form-label">2. Xizmat Turi *</label>

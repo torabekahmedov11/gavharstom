@@ -30,7 +30,7 @@ export interface Doctor {
   firstName: string;
   lastName: string;
   specialization: string;
-  dutyStatus: 'WORKING' | 'IN_SESSION' | 'OFF_DUTY';
+  dutyStatus: 'WORKING' | 'IN_SESSION' | 'SURGERY' | 'OFF_DUTY';
   rating: string;
   experience: string;
   image: string;
@@ -806,29 +806,52 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
                       <button 
                         className={`btn btn-sm ${doc.dutyStatus === 'WORKING' ? 'btn-success' : 'btn-outline'}`}
                         onClick={() => toggleDoctorDuty(doc.id, 'WORKING')}
-                        style={{ flex: 1, fontSize: '10px', padding: '4px 6px' }}
+                        style={{ flex: 1, fontSize: '9.5px', padding: '4px' }}
                       >
                         Ishda
                       </button>
                       <button 
                         className={`btn btn-sm ${doc.dutyStatus === 'IN_SESSION' ? 'btn-warning' : 'btn-outline'}`}
                         onClick={() => toggleDoctorDuty(doc.id, 'IN_SESSION')}
-                        style={{ flex: 1, fontSize: '10px', padding: '4px 6px' }}
+                        style={{ flex: 1, fontSize: '9.5px', padding: '4px' }}
                       >
                         Band
                       </button>
                       <button 
+                        className={`btn btn-sm ${doc.dutyStatus === 'SURGERY' ? 'btn-danger' : 'btn-outline'}`}
+                        onClick={() => toggleDoctorDuty(doc.id, 'SURGERY')}
+                        style={{ flex: 1, fontSize: '9.5px', padding: '4px', background: doc.dutyStatus === 'SURGERY' ? '#7e22ce' : undefined, color: doc.dutyStatus === 'SURGERY' ? 'white' : undefined }}
+                      >
+                        🩸 Operatsiya
+                      </button>
+                      <button 
                         className={`btn btn-sm ${doc.dutyStatus === 'OFF_DUTY' ? 'btn-danger' : 'btn-outline'}`}
                         onClick={() => toggleDoctorDuty(doc.id, 'OFF_DUTY')}
-                        style={{ flex: 1, fontSize: '10px', padding: '4px 6px' }}
+                        style={{ flex: 1, fontSize: '9.5px', padding: '4px' }}
                       >
                         Damda
                       </button>
                     </div>
+
+                    {doc.dutyStatus === 'SURGERY' && (
+                      <div style={{ marginTop: '8px', padding: '8px', borderRadius: '8px', background: '#f3e8ff', border: '1px solid #d8b4fe', fontSize: '11px', color: '#6b21a8' }}>
+                        🩸 <b>Murakkab Operatsiya Rejimi!</b> Bugungi bo'sh vaqtlar avtomatik muzlatildi.
+                        <button 
+                          className="btn btn-outline btn-sm" 
+                          style={{ width: '100%', marginTop: '6px', fontSize: '10px', color: '#6b21a8', borderColor: '#c084fc' }}
+                          onClick={() => {
+                            setTelegramAlert(`📢 Telegram ogohlantirish: ${doc.firstName} murakkab operatsiyadaligi sababli keyingi bemorlarga kechikish haqida SMS boradi!`);
+                            setTimeout(() => setTelegramAlert(null), 5000);
+                          }}
+                        >
+                          📢 Bemorlarga Kechikish Xabarini Yuborish
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
