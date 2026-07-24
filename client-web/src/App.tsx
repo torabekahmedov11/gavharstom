@@ -964,6 +964,25 @@ function App() {
         </div>
 
         <div className="footer-bottom">
+          <div style={{ padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', borderBottom: '1px solid #334155', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <a 
+                href="/admin?autoLogin=admin"
+                style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem' }}
+              >
+                Admin Panelga Kirish
+              </a>
+              <a 
+                href="/admin?autoLogin=director"
+                style={{ padding: '10px 20px', background: '#10b981', color: 'white', borderRadius: '12px', textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem' }}
+              >
+                Direktor Paneliga Kirish
+              </a>
+            </div>
+            <p style={{ color: '#ef4444', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center', maxWidth: '400px' }}>
+              ⚠️ TEST REJIMI UCHUN: Sayt to'liq ish holatiga o'tsa bu tugmalar yashiriladi. Faqat admin va direktor kirishi uchun qilingan vaqtinchalik namuna.
+            </p>
+          </div>
           © 2026 Gavhar Stomatologiya Clinic. Xorazm viloyati, Qo'shko'pir tumani. Barcha huquqlar himoyalangan.
         </div>
       </footer>

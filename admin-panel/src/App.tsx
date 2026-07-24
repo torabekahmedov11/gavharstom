@@ -208,6 +208,19 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
+  // Auto-login from query params
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const autoLogin = searchParams.get('autoLogin');
+    if (autoLogin === 'admin') {
+      setRole('ADMIN');
+      localStorage.setItem('crm_role', 'ADMIN');
+    } else if (autoLogin === 'director') {
+      setRole('DIRECTOR');
+      localStorage.setItem('crm_role', 'DIRECTOR');
+    }
+  }, []);
+
   // Core Data States
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     const saved = localStorage.getItem('stoma_crm_appointments');
