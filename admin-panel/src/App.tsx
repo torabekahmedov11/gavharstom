@@ -42,7 +42,7 @@ export interface Service {
   price: number;
   durationMinutes: number;
   description: string;
-  tag: string;
+  tag?: string;
 }
 
 export interface ToothCondition {
@@ -221,7 +221,89 @@ export default function App() {
   });
 
   const [doctors, setDoctors] = useState<Doctor[]>(DEFAULT_DOCTORS);
-  const [services] = useState<Service[]>(DEFAULT_SERVICES);
+  const [services, setServices] = useState<Service[]>(DEFAULT_SERVICES);
+
+  // Director Management Modal States
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [newServiceName, setNewServiceName] = useState('');
+  const [newServicePrice, setNewServicePrice] = useState<number>(500000);
+  const [newServiceDuration, setNewServiceDuration] = useState<number>(30);
+  const [newServiceModalOpen, setNewServiceModalOpen] = useState(false);
+
+  const [newDocFirstName, setNewDocFirstName] = useState('');
+  const [newDocLastName, setNewDocLastName] = useState('');
+  const [newDocSpecialization, setNewDocSpecialization] = useState('');
+  const [newDoctorModalOpen, setNewDoctorModalOpen] = useState(false);
+
+  const [adminPass, setAdminPass] = useState('admin123');
+  const [directorPass, setDirectorPass] = useState('director123');
+
+  // Director Service CRUD Handlers
+  const handleAddService = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newServiceName) return;
+
+    const newSrv: Service = {
+      id: `srv_${Date.now()}`,
+      name: newServiceName,
+      price: newServicePrice,
+      durationMinutes: newServiceDuration,
+      description: "Gavhar Stomatologiya maxsus muolajasi"
+    };
+
+    setServices(prev => [...prev, newSrv]);
+    setNewServiceName('');
+    setNewServiceModalOpen(false);
+    setTelegramAlert(`✨ Yangi xizmat "${newSrv.name}" (${newServicePrice.toLocaleString()} UZS) muvaffaqiyatli qo'shildi!`);
+    setTimeout(() => setTelegramAlert(null), 4000);
+  };
+
+  const handleSaveService = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingService) return;
+
+    setServices(prev => prev.map(s => s.id === editingService.id ? editingService : s));
+    setEditingService(null);
+    setTelegramAlert(`✏️ Xizmat narxi/nomi saqlandi!`);
+    setTimeout(() => setTelegramAlert(null), 4000);
+  };
+
+  const handleDeleteService = (srvId: string) => {
+    setServices(prev => prev.filter(s => s.id !== srvId));
+    setTelegramAlert(`🗑️ Xizmat olib tashlandi.`);
+    setTimeout(() => setTelegramAlert(null), 4000);
+  };
+
+  // Director Doctor CRUD Handlers
+  const handleAddDoctor = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDocFirstName || !newDocLastName) return;
+
+    const newDoc: Doctor = {
+      id: `doc_${Date.now()}`,
+      firstName: newDocFirstName,
+      lastName: newDocLastName,
+      specialization: newDocSpecialization || 'Stomatolog',
+      dutyStatus: 'WORKING',
+      experience: '5 Yillik Tajriba',
+      rating: '5.0',
+      image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400'
+    };
+
+    setDoctors(prev => [...prev, newDoc]);
+    setNewDocFirstName('');
+    setNewDocLastName('');
+    setNewDocSpecialization('');
+    setNewDoctorModalOpen(false);
+    setTelegramAlert(`👨‍⚕️ Yangi shifokor ${newDoc.firstName} ${newDoc.lastName} qo'shildi!`);
+    setTimeout(() => setTelegramAlert(null), 4000);
+  };
+
+  const handleDeleteDoctor = (docId: string) => {
+    setDoctors(prev => prev.filter(d => d.id !== docId));
+    setTelegramAlert(`🗑️ Shifokor ro'yxatdan olib tashlandi.`);
+    setTimeout(() => setTelegramAlert(null), 4000);
+  };
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'doctors' | 'teeth-chart' | 'director'>('dashboard');
@@ -1442,78 +1524,131 @@ export default function App() {
               </div>
             </div>
 
-            {/* DOCTOR PERFORMANCE LEADERBOARD TABLE */}
+            {/* DIRECTOR MANAGEMENT MODULE: SERVICES & PRICES MANAGER */}
             <div className="card">
               <div className="card-title">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: 800 }}>
-                  👨‍⚕️ Shifokorlar Ish Unumdorligi & Moliyaviy Leaderboard
+                  🦷 Muolajalar Xizmat Ko'rsatkichlari & Narxlar Boshqaruvi
                 </span>
-                <span className="badge badge-purple">PRO ANALITIKA</span>
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setNewServiceModalOpen(true)}
+                  style={{ background: 'linear-gradient(135deg, #0284c7, #06b6d4)' }}
+                >
+                  <Plus size={16} /> Yangi Muolaja / Narx Qo'shish
+                </button>
               </div>
 
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                Har bir shifokor keltirgan jami daromad, bemorlar soni va ularga ajratilgan 10% rag'batlantirish bonusi:
+                Direktor bu yerda klinika muolajalar nomini, narxlarini (UZS) va davomiylik vaqtini o'zgartirishi mumkin:
               </p>
 
               <table className="pro-table">
                 <thead>
                   <tr>
-                    <th>O'RIN</th>
-                    <th>SHIFOKOR</th>
-                    <th>MUTAXASSISLIK</th>
-                    <th>BEMORLAR</th>
-                    <th>JAMI TUSHUM</th>
-                    <th>O'RTACHA VAQT</th>
-                    <th>BONUS (10%)</th>
-                    <th>HOLATI</th>
+                    <th>MUOLAJA NOMI</th>
+                    <th>XIZMAT NARXI (UZS)</th>
+                    <th>DAVOMIYLIGI</th>
+                    <th>TAFSILOTI</th>
+                    <th>AMALLAR</th>
                   </tr>
                 </thead>
                 <tbody>
+                  {services.map((srv) => (
+                    <tr key={srv.id}>
+                      <td><b>{srv.name}</b></td>
+                      <td><b style={{ color: '#10b981', fontSize: '15px' }}>{srv.price.toLocaleString()} UZS</b></td>
+                      <td>{srv.durationMinutes || 30} daqiqa</td>
+                      <td><span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{srv.description || "Standart muolaja"}</span></td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button 
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: '11px' }}
+                            onClick={() => setEditingService(srv)}
+                          >
+                            ✏️ Narxni O'zgartirish
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-sm"
+                            style={{ fontSize: '11px', background: '#ef4444' }}
+                            onClick={() => handleDeleteService(srv.id)}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* DOCTOR PERFORMANCE & MANAGEMENT LEADERBOARD TABLE */}
+            <div className="card">
+              <div className="card-title">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: 800 }}>
+                  👨‍⚕️ Shifokorlar Boshqaruvi & Moliyaviy Leaderboard
+                </span>
+                <button 
+                  className="btn btn-purple btn-sm"
+                  onClick={() => setNewDoctorModalOpen(true)}
+                  style={{ background: 'linear-gradient(135deg, #7e22ce, #a855f7)', color: 'white' }}
+                >
+                  <Plus size={16} /> Yangi Shifokor Qo'shish
+                </button>
+              </div>
+
+              <table className="pro-table">
+                <thead>
                   <tr>
-                    <td><b>🥇 #1</b></td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
-                        <b>Dr. Torabek Ahmedov</b>
-                      </div>
-                    </td>
-                    <td>Bosh Stomatolog-Implantolog</td>
-                    <td><b>42 ta</b></td>
-                    <td><b style={{ color: '#10b981' }}>45,000,000 UZS</b></td>
-                    <td>42 daqiqa</td>
-                    <td><span className="badge badge-success">4,500,000 UZS</span></td>
-                    <td><span className="badge badge-success">🟢 ISHDA</span></td>
+                    <th>SHIFOKOR</th>
+                    <th>MUTAXASSISLIK</th>
+                    <th>TAJRIBA</th>
+                    <th>ISH HOLATI</th>
+                    <th>AMALLAR</th>
                   </tr>
-                  <tr>
-                    <td><b>🥈 #2</b></td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img src="https://images.unsplash.com/photo-1594824813566-78a99478f7e8?auto=format&fit=crop&q=80&w=150" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
-                        <b>Dr. Malika Umurova</b>
-                      </div>
-                    </td>
-                    <td>Estetik Stomatolog-Ortodont</td>
-                    <td><b>38 ta</b></td>
-                    <td><b style={{ color: '#10b981' }}>24,500,000 UZS</b></td>
-                    <td>45 daqiqa</td>
-                    <td><span className="badge badge-success">2,450,000 UZS</span></td>
-                    <td><span className="badge badge-primary">🟡 KRESLODA</span></td>
-                  </tr>
-                  <tr>
-                    <td><b>🥉 #3</b></td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=150" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
-                        <b>Dr. Jamshid Karimov</b>
-                      </div>
-                    </td>
-                    <td>Terapevt-Endodontist</td>
-                    <td><b>29 ta</b></td>
-                    <td><b style={{ color: '#10b981' }}>15,000,000 UZS</b></td>
-                    <td>35 daqiqa</td>
-                    <td><span className="badge badge-success">1,500,000 UZS</span></td>
-                    <td><span className="badge badge-gray">⚪ DAMDA</span></td>
-                  </tr>
+                </thead>
+                <tbody>
+                  {doctors.map((doc) => (
+                    <tr key={doc.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <img src={doc.image || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150"} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <div>
+                            <b>{doc.firstName} {doc.lastName}</b>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>⭐ {doc.rating || "5.0"}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{doc.specialization}</td>
+                      <td>{doc.experience}</td>
+                      <td>
+                        <select 
+                          className="form-control" 
+                          style={{ fontSize: '12px', padding: '4px 8px', fontWeight: 700 }}
+                          value={doc.dutyStatus}
+                          onChange={(e) => {
+                            const val = e.target.value as Doctor['dutyStatus'];
+                            setDoctors(prev => prev.map(d => d.id === doc.id ? { ...d, dutyStatus: val } : d));
+                          }}
+                        >
+                          <option value="WORKING">🟢 ISHDA (Qabulga Tayyor)</option>
+                          <option value="IN_SESSION">🟡 KRESLODA (Bemor bilan)</option>
+                          <option value="OFF_DUTY">🔴 ISHDAMAS / TA'TILDA</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button 
+                          className="btn btn-danger btn-sm"
+                          style={{ fontSize: '11px', background: '#dc2626' }}
+                          onClick={() => handleDeleteDoctor(doc.id)}
+                        >
+                          🗑️ O'chirish
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -1579,7 +1714,7 @@ export default function App() {
                   <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: '14px' }}>👑 Bosh Direktor (CEO)</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Login: <code>director</code> | Parol: <code>director123</code></div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Login: <code>director</code> | Parol: <code>{directorPass}</code></div>
                     </div>
                     <span className="badge badge-purple">TO'LIQ RUXSAT</span>
                   </div>
@@ -1587,17 +1722,21 @@ export default function App() {
                   <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: '14px' }}>💼 Kassa & Qabul Admini</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Login: <code>admin</code> | Parol: <code>admin123</code></div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Login: <code>admin</code> | Parol: <code>{adminPass}</code></div>
                     </div>
                     <span className="badge badge-primary">OPERATSION</span>
                   </div>
 
-                  <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '14px' }}>👨‍⚕️ Bosh Shifokor (Doctor Panel)</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Login: <code>doctor</code> | Parol: <code>doctor123</code></div>
+                  <div style={{ marginTop: '8px', padding: '10px', borderRadius: '10px', background: 'var(--card)', border: '1px solid var(--border)', fontSize: '12px' }}>
+                    <div style={{ fontWeight: 700, marginBottom: '6px' }}>🔑 Admin va Direktor Parolini Tahrirlash:</div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input type="text" className="form-control" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="Admin paroli" style={{ fontSize: '12px' }} />
+                      <input type="text" className="form-control" value={directorPass} onChange={e => setDirectorPass(e.target.value)} placeholder="Direktor paroli" style={{ fontSize: '12px' }} />
+                      <button className="btn btn-success btn-sm" onClick={() => {
+                        setTelegramAlert(`🔐 Tizim parollari muvaffaqiyatli yangilandi!`);
+                        setTimeout(() => setTelegramAlert(null), 3000);
+                      }}>💾 Saqlash</button>
                     </div>
-                    <span className="badge badge-success">TIBBIY RUXSAT</span>
                   </div>
                 </div>
               </div>
@@ -2194,6 +2333,169 @@ export default function App() {
                 <button type="submit" className="btn btn-success" style={{ flex: 1.5, fontWeight: 800 }}>
                   <Check size={18} /> Saqlash & Qabulni Yakunlash
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT SERVICE / PRICE */}
+      {editingService && (
+        <div className="modal-overlay" onClick={() => setEditingService(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800 }}>✏️ Muolaja Narxini Tahrirlash</h3>
+              <button onClick={() => setEditingService(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                <XCircle size={22} color="var(--text-muted)" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveService}>
+              <div className="form-group">
+                <label className="form-label">Muolaja Nomi</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={editingService.name} 
+                  onChange={e => setEditingService({ ...editingService, name: e.target.value })} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Narxi (UZS)</label>
+                <input 
+                  type="number" 
+                  className="form-control" 
+                  style={{ fontWeight: 800, color: '#10b981' }} 
+                  value={editingService.price} 
+                  onChange={e => setEditingService({ ...editingService, price: Number(e.target.value) })} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Davomiylik Vaqti (Daqiqa)</label>
+                <input 
+                  type="number" 
+                  className="form-control" 
+                  value={editingService.durationMinutes || 30} 
+                  onChange={e => setEditingService({ ...editingService, durationMinutes: Number(e.target.value) })} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setEditingService(null)}>Bekor qilish</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1.5 }}>💾 Saqlash</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD NEW SERVICE / PRICE */}
+      {newServiceModalOpen && (
+        <div className="modal-overlay" onClick={() => setNewServiceModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800 }}>➕ Yangi Muolaja / Narx Qo'shish</h3>
+              <button onClick={() => setNewServiceModalOpen(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                <XCircle size={22} color="var(--text-muted)" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddService}>
+              <div className="form-group">
+                <label className="form-label">Muolaja Nomi *</label>
+                <input 
+                  type="text" 
+                  required 
+                  className="form-control" 
+                  placeholder="masalan: Keramik Vinir, Metallokeramika..." 
+                  value={newServiceName} 
+                  onChange={e => setNewServiceName(e.target.value)} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Xizmat Narxi (UZS) *</label>
+                <input 
+                  type="number" 
+                  required 
+                  className="form-control" 
+                  style={{ fontWeight: 800, color: '#10b981' }} 
+                  value={newServicePrice} 
+                  onChange={e => setNewServicePrice(Number(e.target.value))} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Davomiyligi (Daqiqa)</label>
+                <input 
+                  type="number" 
+                  className="form-control" 
+                  value={newServiceDuration} 
+                  onChange={e => setNewServiceDuration(Number(e.target.value))} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setNewServiceModalOpen(false)}>Bekor qilish</button>
+                <button type="submit" className="btn btn-success" style={{ flex: 1.5 }}>➕ Qo'shish</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD NEW DOCTOR */}
+      {newDoctorModalOpen && (
+        <div className="modal-overlay" onClick={() => setNewDoctorModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800 }}>👨‍⚕️ Yangi Shifokor Qo'shish</h3>
+              <button onClick={() => setNewDoctorModalOpen(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                <XCircle size={22} color="var(--text-muted)" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddDoctor}>
+              <div className="form-group">
+                <label className="form-label">Ismi *</label>
+                <input 
+                  type="text" 
+                  required 
+                  className="form-control" 
+                  placeholder="masalan: Jasur" 
+                  value={newDocFirstName} 
+                  onChange={e => setNewDocFirstName(e.target.value)} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Familiyasi *</label>
+                <input 
+                  type="text" 
+                  required 
+                  className="form-control" 
+                  placeholder="masalan: Rustamov" 
+                  value={newDocLastName} 
+                  onChange={e => setNewDocLastName(e.target.value)} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Mutaxassisligi</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="masalan: Stomatolog-Ortoped" 
+                  value={newDocSpecialization} 
+                  onChange={e => setNewDocSpecialization(e.target.value)} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setNewDoctorModalOpen(false)}>Bekor qilish</button>
+                <button type="submit" className="btn btn-purple" style={{ flex: 1.5, background: 'linear-gradient(135deg, #7e22ce, #a855f7)', color: 'white' }}>➕ Qo'shish</button>
               </div>
             </form>
           </div>
