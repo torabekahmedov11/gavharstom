@@ -144,9 +144,9 @@ h1, h2, h3, h4, .title {
   gap: 24px;
 }
 
-.grid-3 {
+.grid-3-col {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1.1fr 1.5fr 1fr;
   gap: 20px;
 }
 

@@ -12,14 +12,14 @@ import {
   Check,
   Calendar,
   XCircle,
-  PhoneCall,
   Send,
   Moon,
   Sun,
-  Volume2,
   FileText,
   AlertCircle,
-  ChevronRight
+  ChevronRight,
+  UserPlus,
+  CheckCircle2
 } from 'lucide-react';
 import './index.css';
 
@@ -59,6 +59,8 @@ export interface Appointment {
     lastName: string;
     phoneNumber: string;
     telegramId?: string;
+    symptom?: string;
+    note?: string;
   };
   doctorId: string;
   doctor: {
@@ -68,6 +70,7 @@ export interface Appointment {
   service: {
     name: string;
     price: number;
+    durationMinutes?: number;
   };
   startTime: string;
   endTime: string;
@@ -111,13 +114,15 @@ const DEFAULT_DOCTORS: Doctor[] = [
 ];
 
 const DEFAULT_SERVICES: Service[] = [
-  { id: 's1', name: "Swiss Implantatsiya", price: 4500000, durationMinutes: 45, description: "Shveytsariya Straumann va Osstem implantlari. Umrbod kafolat.", tag: "Tavsiya etiladi" },
+  { id: 's0', name: "Bepul Konsultatsiya & Diagnostika", price: 0, durationMinutes: 30, description: "Tish ko'rigi va bepul diagnostika.", tag: "Bepul" },
+  { id: 's1', name: "Swiss Implantatsiya", price: 4500000, durationMinutes: 45, description: "Shveytsariya Straumann implantlari. Umrbod kafolat.", tag: "Tavsiya etiladi" },
   { id: 's2', name: "Tish Oqartirish (Zoom 4)", price: 1200000, durationMinutes: 40, description: "Zoom 4 lazer texnologiyasi bilan 8 tongacha xavfsiz oqartirish.", tag: "Aksiya" },
   { id: 's3', name: "E-Max Keramik Vinirlar", price: 2800000, durationMinutes: 60, description: "Gollivud tabassumi! Nemis keramik vinirlari.", tag: "Estetik" },
   { id: 's4', name: "Ortodontiya (Braketlar)", price: 3000000, durationMinutes: 45, description: "Tishlar qatorini tekislash va tishlamni to'g'rilash.", tag: "Ortodont" },
-  { id: 's5', name: "Karies Davolash (Mikroskop)", price: 350000, durationMinutes: 30, description: "Karies va pulsitni 20x kattalashtirish ostida davolash.", tag: "Mikroskop" },
-  { id: 's6', name: "Bolalar Stomatologiyasi", price: 250000, durationMinutes: 30, description: "O'yin tarzida qo'rquvsiz va og'riqsiz davolash.", tag: "Bolalar uchun" }
+  { id: 's5', name: "Karies Davolash (Mikroskop)", price: 350000, durationMinutes: 30, description: "Karies va pulsitni 20x kattalashtirish ostida davolash.", tag: "Mikroskop" }
 ];
+
+const CANDIDATE_TIMES = ["08:30", "09:15", "10:00", "10:45", "11:30", "14:00", "14:45", "15:30", "16:15", "17:00"];
 
 const TODAY = new Date().toISOString().split('T')[0];
 const YESTERDAY = new Date(Date.now() - 86400000).toISOString().split('T')[0];
@@ -126,62 +131,59 @@ const INITIAL_APPOINTMENTS: Appointment[] = [
   {
     id: 'app_1',
     patientId: 'p1',
-    patient: { firstName: 'Jasur', lastName: 'Ro\'ziyev', phoneNumber: '+998901234567', telegramId: '@jasur_r' },
+    patient: { 
+      firstName: 'Jasur', 
+      lastName: 'Ro\'ziyev', 
+      phoneNumber: '+998901234567', 
+      telegramId: '@jasur_r',
+      symptom: '🦷 Tishim og\'riyapti (Og\'riq / Shish)',
+      note: 'Kechasi pastki jag\'imda og\'riq bo\'ldi'
+    },
     doctorId: 'd1',
     doctor: { firstName: 'Dr. Torabek', lastName: 'Ahmedov' },
-    service: { name: 'Swiss Implantatsiya', price: 4500000 },
+    service: { name: 'Swiss Implantatsiya', price: 4500000, durationMinutes: 45 },
     startTime: `${TODAY}T09:30:00.000Z`,
     endTime: `${TODAY}T10:15:00.000Z`,
     status: 'IN_PROGRESS',
     isLiveQueue: true,
-    createdAt: `${TODAY}T09:00:00.000Z`,
-    teethNotes: [
-      { number: 16, status: 'Implant', notes: 'Straumann 4.1mm implant joylashtirildi' },
-      { number: 24, status: 'Karies', notes: 'Chuqur karies kuzatildi' }
-    ]
+    createdAt: `${TODAY}T09:00:00.000Z`
   },
   {
     id: 'app_2',
     patientId: 'p2',
-    patient: { firstName: 'Gulnora', lastName: 'Aliyeva', phoneNumber: '+998919876543', telegramId: '@gulnora_a' },
+    patient: { 
+      firstName: 'Gulnora', 
+      lastName: 'Aliyeva', 
+      phoneNumber: '+998919876543', 
+      telegramId: '@gulnora_a',
+      symptom: '❓ Bilmayman / Shunchaki ko\'rik va diagnostika'
+    },
     doctorId: 'd2',
     doctor: { firstName: 'Dr. Malika', lastName: 'Umurova' },
-    service: { name: 'E-Max Keramik Vinirlar', price: 2800000 },
+    service: { name: 'Bepul Konsultatsiya & Diagnostika', price: 0, durationMinutes: 30 },
     startTime: `${TODAY}T11:00:00.000Z`,
-    endTime: `${TODAY}T12:00:00.000Z`,
+    endTime: `${TODAY}T11:30:00.000Z`,
     status: 'PENDING',
     isLiveQueue: false,
-    createdAt: `${TODAY}T08:30:00.000Z`,
-    teethNotes: [
-      { number: 11, status: 'Vinir' },
-      { number: 21, status: 'Vinir' }
-    ]
+    createdAt: `${TODAY}T08:30:00.000Z`
   },
   {
     id: 'app_3',
     patientId: 'p3',
-    patient: { firstName: 'Sardor', lastName: 'Qodirov', phoneNumber: '+998935551234' },
+    patient: { 
+      firstName: 'Sardor', 
+      lastName: 'Qodirov', 
+      phoneNumber: '+998935551234',
+      symptom: '🥶 Issiq yoki sovuqqa ta\'sirchan'
+    },
     doctorId: 'd1',
     doctor: { firstName: 'Dr. Torabek', lastName: 'Ahmedov' },
-    service: { name: 'Tish Oqartirish (Zoom 4)', price: 1200000 },
+    service: { name: 'Tish Oqartirish (Zoom 4)', price: 1200000, durationMinutes: 40 },
     startTime: `${TODAY}T14:00:00.000Z`,
     endTime: `${TODAY}T14:40:00.000Z`,
     status: 'CONFIRMED',
     isLiveQueue: false,
     createdAt: `${TODAY}T07:45:00.000Z`
-  },
-  {
-    id: 'app_4',
-    patientId: 'p4',
-    patient: { firstName: 'Nigora', lastName: 'Usmanova', phoneNumber: '+998974448899' },
-    doctorId: 'd3',
-    doctor: { firstName: 'Dr. Jamshid', lastName: 'Karimov' },
-    service: { name: 'Ortodontiya (Braketlar)', price: 3000000 },
-    startTime: `${YESTERDAY}T15:00:00.000Z`,
-    endTime: `${YESTERDAY}T16:00:00.000Z`,
-    status: 'COMPLETED',
-    isLiveQueue: false,
-    createdAt: `${YESTERDAY}T10:00:00.000Z`
   }
 ];
 
@@ -193,21 +195,29 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   // Core Data States
-  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    const saved = localStorage.getItem('stoma_crm_appointments');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_APPOINTMENTS;
+  });
+
   const [doctors, setDoctors] = useState<Doctor[]>(DEFAULT_DOCTORS);
   const [services] = useState<Service[]>(DEFAULT_SERVICES);
 
-  // Filters & Tabs
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'doctors' | 'teeth-chart' | 'call-display'>('dashboard');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [periodFilter, setPeriodFilter] = useState<'TODAY' | 'YESTERDAY' | 'MONTH' | 'ALL'>('TODAY');
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'doctors' | 'teeth-chart'>('dashboard');
+  const [periodFilter] = useState<'TODAY' | 'YESTERDAY' | 'MONTH' | 'ALL'>('TODAY');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modals & Active Drawers
+  // Modals & Notifications
   const [selectedPatient, setSelectedPatient] = useState<Appointment | null>(null);
-  const [reminderModal, setReminderModal] = useState<Appointment | null>(null);
   const [newAppointmentModal, setNewAppointmentModal] = useState(false);
-  const [callingPatient, setCallingPatient] = useState<Appointment | null>(null);
+  const [telegramAlert, setTelegramAlert] = useState<string | null>(null);
 
   // Odontogram Teeth State
   const [selectedTooth, setSelectedTooth] = useState<number | null>(11);
@@ -219,16 +229,22 @@ export default function App() {
     { number: 36, status: 'Plomba' }
   ]);
 
-  // Form State for new appointment
+  // Admin New Booking Modal Form
   const [newPatientName, setNewPatientName] = useState('');
   const [newPatientPhone, setNewPatientPhone] = useState('');
   const [selectedDoctorId, setSelectedDoctorId] = useState(DEFAULT_DOCTORS[0].id);
   const [selectedServiceId, setSelectedServiceId] = useState(DEFAULT_SERVICES[0].id);
+  const [newAppDate, setNewAppDate] = useState(TODAY);
   const [newAppTime, setNewAppTime] = useState('10:00');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Sync state with localStorage across tabs
+  useEffect(() => {
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(appointments));
+  }, [appointments]);
 
   // Handle Login
   const handleLogin = (e: React.FormEvent) => {
@@ -248,9 +264,24 @@ export default function App() {
     localStorage.removeItem('crm_role');
   };
 
-  // Appointment Status Handlers
+  // Approve & Notify via Telegram
+  const handleApproveAppointment = (app: Appointment) => {
+    const updated = appointments.map(a => a.id === app.id ? { ...a, status: 'CONFIRMED' as const } : a);
+    setAppointments(updated);
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+    // Show instant Telegram notification feedback
+    if (app.patient.telegramId || app.patient.phoneNumber) {
+      setTelegramAlert(`💬 Telegram xabari yuborildi: ${app.patient.firstName} ning qabuli tasdiqlandi!`);
+      setTimeout(() => setTelegramAlert(null), 4000);
+    }
+  };
+
+  // Appointment Status Transition
   const updateAppointmentStatus = (id: string, newStatus: Appointment['status']) => {
-    setAppointments(prev => prev.map(app => app.id === id ? { ...app, status: newStatus } : app));
+    const updated = appointments.map(app => app.id === id ? { ...app, status: newStatus } : app);
+    setAppointments(updated);
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
   };
 
   // Doctor Duty Switcher
@@ -269,16 +300,16 @@ export default function App() {
     });
   };
 
-  // Create Walk-in / New Appointment
+  // Create Walk-in / New Appointment with Slot Checking
   const handleCreateAppointment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPatientName || !newPatientPhone) return;
 
     const doc = doctors.find(d => d.id === selectedDoctorId);
     const srv = services.find(s => s.id === selectedServiceId);
-    const duration = srv?.durationMinutes || 45;
+    const duration = srv?.durationMinutes || 30;
 
-    const startIso = `${TODAY}T${newAppTime}:00.000Z`;
+    const startIso = `${newAppDate}T${newAppTime}:00.000Z`;
     const endIso = new Date(new Date(startIso).getTime() + duration * 60000).toISOString();
 
     const newApp: Appointment = {
@@ -291,7 +322,7 @@ export default function App() {
       },
       doctorId: selectedDoctorId,
       doctor: { firstName: doc?.firstName || '', lastName: doc?.lastName || '' },
-      service: { name: srv?.name || '', price: srv?.price || 0 },
+      service: { name: srv?.name || '', price: srv?.price || 0, durationMinutes: duration },
       startTime: startIso,
       endTime: endIso,
       status: 'CONFIRMED',
@@ -301,11 +332,8 @@ export default function App() {
 
     const updated = [newApp, ...appointments];
     setAppointments(updated);
-
-    // Save to shared localStorage so client-web updates busy slots in real time
     localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
 
-    // Send to backend
     fetch(`${API_URL}/admin/appointments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -317,38 +345,54 @@ export default function App() {
     setNewPatientPhone('');
   };
 
-  // Date Filtering Logic
+  // Filter Appointments
   const filteredAppointments = appointments.filter(app => {
     const appDate = app.startTime.split('T')[0];
-    
-    // Period filter
     if (periodFilter === 'TODAY' && appDate !== TODAY) return false;
     if (periodFilter === 'YESTERDAY' && appDate !== YESTERDAY) return false;
     if (periodFilter === 'MONTH' && !appDate.startsWith(TODAY.substring(0, 7))) return false;
 
-    // Status filter
-    if (statusFilter !== 'ALL' && app.status !== statusFilter) return false;
-
-    // Search query
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matchName = `${app.patient.firstName} ${app.patient.lastName}`.toLowerCase().includes(q);
       const matchPhone = app.patient.phoneNumber.includes(q);
       const matchDoctor = `${app.doctor.firstName} ${app.doctor.lastName}`.toLowerCase().includes(q);
-      const matchService = app.service.name.toLowerCase().includes(q);
-      return matchName || matchPhone || matchDoctor || matchService;
+      return matchName || matchPhone || matchDoctor;
     }
-
     return true;
   });
 
-  // Calculate Metrics
+  // LEFT COLUMN: Unconfirmed / Pending Appointments
+  const pendingAppointments = filteredAppointments.filter(a => a.status === 'PENDING');
+
+  // MIDDLE COLUMN: Confirmed & In Progress sorted chronologically (earliest startTime top)
+  const confirmedQueue = filteredAppointments
+    .filter(a => a.status === 'CONFIRMED' || a.status === 'IN_PROGRESS')
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+  // Metrics
   const totalRevenue = appointments
     .filter(a => a.status === 'COMPLETED' || a.status === 'CONFIRMED' || a.status === 'IN_PROGRESS')
     .reduce((sum, a) => sum + a.service.price, 0);
 
-  const pendingCount = appointments.filter(a => a.status === 'PENDING').length;
-  const inProgressCount = appointments.filter(a => a.status === 'IN_PROGRESS').length;
+  // Admin Slot Availability Calculator
+  const activeSrvObj = services.find(s => s.id === selectedServiceId);
+  const activeDuration = activeSrvObj?.durationMinutes || 30;
+
+  const adminSlotStatuses = CANDIDATE_TIMES.map(tStr => {
+    const startMs = new Date(`${newAppDate}T${tStr}:00.000Z`).getTime();
+    const endMs = startMs + activeDuration * 60000;
+
+    const isOccupied = appointments.some(app => {
+      if (app.status === 'CANCELLED') return false;
+      if (app.doctorId !== selectedDoctorId) return false;
+      const aStart = new Date(app.startTime).getTime();
+      const aEnd = new Date(app.endTime).getTime();
+      return (startMs < aEnd && endMs > aStart);
+    });
+
+    return { timeStr: tStr, isOccupied };
+  });
 
   if (!role) {
     return (
@@ -417,7 +461,7 @@ export default function App() {
             <div>
               <h1 className="title" style={{ fontSize: '22px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 Gavhar Stoma CRM
-                <span className="badge badge-primary" style={{ fontSize: '11px' }}>PRO EDITION</span>
+                <span className="badge badge-primary" style={{ fontSize: '11px' }}>LIVE PRO</span>
               </h1>
               <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Toshkent Shahri, Maxsus Stomatologiya Markazi</p>
             </div>
@@ -430,7 +474,7 @@ export default function App() {
             </button>
 
             <button className="btn btn-primary btn-sm" onClick={() => setNewAppointmentModal(true)}>
-              <Plus size={16} /> Yangi Navbat Qo'shish
+              <Plus size={16} /> Jonli Navbat Qo'shish
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'var(--table-head-bg)', borderRadius: '12px', border: '1px solid var(--border)' }}>
@@ -443,7 +487,15 @@ export default function App() {
           </div>
         </div>
 
-        {/* Top KPI Metrics Cards */}
+        {/* Telegram Instant Alert Toast */}
+        {telegramAlert && (
+          <div style={{ padding: '14px 20px', borderRadius: '16px', background: '#0284c7', color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 25px rgba(2,132,199,0.3)' }}>
+            <Send size={20} />
+            {telegramAlert}
+          </div>
+        )}
+
+        {/* KPI Metrics */}
         <div className="grid-4" style={{ marginBottom: '24px' }}>
           <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ padding: '14px', borderRadius: '16px', background: '#e0f2fe', color: '#0284c7' }}>
@@ -451,7 +503,7 @@ export default function App() {
             </div>
             <div>
               <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>MOLIYAVIY TUSHUM</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '2px' }}>{totalRevenue.toLocaleString()} UZS</div>
+              <div style={{ fontSize: '19px', fontWeight: 800, marginTop: '2px' }}>{totalRevenue.toLocaleString()} UZS</div>
             </div>
           </div>
 
@@ -460,8 +512,8 @@ export default function App() {
               <Clock size={24} />
             </div>
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>KUTILAYOTGAN NAVBATLAR</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '2px' }}>{pendingCount} ta Bemor</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>YANGI TUSHGAN (TASDIQLANMAGAN)</div>
+              <div style={{ fontSize: '19px', fontWeight: 800, marginTop: '2px' }}>{pendingAppointments.length} ta Bemor</div>
             </div>
           </div>
 
@@ -470,8 +522,8 @@ export default function App() {
               <UserCheck size={24} />
             </div>
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>QABULDA (JARAYONDA)</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '2px' }}>{inProgressCount} ta Bemor</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>NAVBAТI YA QINLASHGANLAR</div>
+              <div style={{ fontSize: '19px', fontWeight: 800, marginTop: '2px' }}>{confirmedQueue.length} ta Bemor</div>
             </div>
           </div>
 
@@ -480,19 +532,19 @@ export default function App() {
               <Stethoscope size={24} />
             </div>
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>NAVBATCHI SHIFOKORLAR</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '2px' }}>{doctors.filter(d => d.dutyStatus !== 'OFF_DUTY').length} / {doctors.length} Shifokor</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>SHIFOKORLAR ISHDA</div>
+              <div style={{ fontSize: '19px', fontWeight: 800, marginTop: '2px' }}>{doctors.filter(d => d.dutyStatus !== 'OFF_DUTY').length} / {doctors.length} Shifokor</div>
             </div>
           </div>
         </div>
 
-        {/* Main Tab Navigation */}
+        {/* Tab Header */}
         <div className="tabs-header">
           <button className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <BarChart3 size={18} /> Asosiy Boshqaruv
+            <BarChart3 size={18} /> 3-Ustunli Jonli Boshqaruv
           </button>
           <button className={`tab-btn ${activeTab === 'appointments' ? 'active' : ''}`} onClick={() => setActiveTab('appointments')}>
-            <Calendar size={18} /> Navbatlar Ro'yxati ({filteredAppointments.length})
+            <Calendar size={18} /> Barcha Qabullar Ro'yxati ({filteredAppointments.length})
           </button>
           <button className={`tab-btn ${activeTab === 'teeth-chart' ? 'active' : ''}`} onClick={() => setActiveTab('teeth-chart')}>
             <Sparkles size={18} /> 32-Tish Odontogramma Chart
@@ -500,246 +552,218 @@ export default function App() {
           <button className={`tab-btn ${activeTab === 'doctors' ? 'active' : ''}`} onClick={() => setActiveTab('doctors')}>
             <Stethoscope size={18} /> Shifokorlar Rejimi
           </button>
-          <button className={`tab-btn ${activeTab === 'call-display' ? 'active' : ''}`} onClick={() => setActiveTab('call-display')}>
-            <Volume2 size={18} /> Resepshn Monitor Rejimi
-          </button>
         </div>
 
-        {/* TAB 1: DASHBOARD & QUICK CONFIRMATION */}
+        {/* TAB 1: 3-COLUMN REFINED LIVE CRM DASHBOARD */}
         {activeTab === 'dashboard' && (
-          <div className="grid-2">
-            {/* Left: Appointments Table & Controls */}
-            <div className="card">
+          <div className="grid-3-col">
+            
+            {/* COLUMN 1 (LEFT): UNCONFIRMED / PENDING APPOINTMENTS */}
+            <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
               <div className="card-title">
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={20} color="var(--primary)" /> Bugungi va Kelgusi Qabullar
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px' }}>
+                  <Clock size={18} color="#d97706" /> 1. Yangi Tushgan Navbatlar
                 </span>
-
-                {/* Period Filter Buttons */}
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {(['TODAY', 'YESTERDAY', 'MONTH', 'ALL'] as const).map(p => (
-                    <button 
-                      key={p} 
-                      className={`btn btn-sm ${periodFilter === p ? 'btn-primary' : 'btn-outline'}`}
-                      onClick={() => setPeriodFilter(p)}
-                      style={{ fontSize: '11px', padding: '4px 10px' }}
-                    >
-                      {p === 'TODAY' ? 'Bugun' : p === 'YESTERDAY' ? 'Kecha' : p === 'MONTH' ? '1 Oylik' : 'Hamma'}
-                    </button>
-                  ))}
-                </div>
+                <span className="badge badge-warning">{pendingAppointments.length} ta</span>
               </div>
 
-              {/* Status Pills */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                {[
-                  { key: 'ALL', label: 'Barchasi' },
-                  { key: 'PENDING', label: 'Tasdiqlanmagan' },
-                  { key: 'CONFIRMED', label: 'Tasdiqlangan' },
-                  { key: 'IN_PROGRESS', label: 'Qabulda' },
-                  { key: 'COMPLETED', label: 'Yakunlangan' }
-                ].map(st => (
-                  <button 
-                    key={st.key}
-                    onClick={() => setStatusFilter(st.key)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '999px',
-                      border: '1px solid var(--border)',
-                      background: statusFilter === st.key ? 'var(--primary)' : 'var(--card)',
-                      color: statusFilter === st.key ? 'white' : 'var(--text-muted)',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {st.label}
-                  </button>
-                ))}
-              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+                Onlayn yozilgan bemorlar. Admin <b>"Tasdiqlash"</b>ni bossa, o'rtadagi ustunga o'tadi va Telegram xabar boradi.
+              </p>
 
-              {/* Appointments List / Table */}
-              {filteredAppointments.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-                  <Calendar size={48} style={{ opacity: 0.3, marginBottom: '12px' }} />
-                  <p style={{ fontWeight: 600 }}>Ko'rsatilgan filtr bo'yicha qabullar topilmadi</p>
+              {pendingAppointments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
+                  <CheckCircle2 size={36} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                  <p style={{ fontSize: '13px', fontWeight: 600 }}>Yangi tasdiqlanmagan navbatlar yo'q</p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="pro-table">
-                    <thead>
-                      <tr>
-                        <th>Bemor</th>
-                        <th>Shifokor / Xizmat</th>
-                        <th>Vaqt</th>
-                        <th>Holat</th>
-                        <th>Amallar</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredAppointments.map(app => (
-                        <tr key={app.id}>
-                          <td>
-                            <div style={{ fontWeight: 800, fontSize: '15px' }}>{app.patient.firstName} {app.patient.lastName}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <PhoneCall size={12} /> {app.patient.phoneNumber}
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ fontWeight: 700 }}>{app.doctor.firstName} {app.doctor.lastName}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600 }}>{app.service.name}</div>
-                          </td>
-                          <td>
-                            <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Clock size={14} color="var(--primary)" />
-                              {app.startTime.split('T')[1].substring(0, 5)}
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{app.startTime.split('T')[0]}</div>
-                          </td>
-                          <td>
-                            {app.status === 'PENDING' && <span className="badge badge-warning">Tasdiqlanmagan</span>}
-                            {app.status === 'CONFIRMED' && <span className="badge badge-primary">Tasdiqlangan</span>}
-                            {app.status === 'IN_PROGRESS' && <span className="badge badge-purple">Qabulda</span>}
-                            {app.status === 'COMPLETED' && <span className="badge badge-success">Yakunlangan</span>}
-                            {app.status === 'CANCELLED' && <span className="badge badge-danger">Bekor qilingan</span>}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              {app.status === 'PENDING' && (
-                                <button 
-                                  className="btn btn-success btn-sm"
-                                  onClick={() => updateAppointmentStatus(app.id, 'CONFIRMED')}
-                                  title="1-Bosishda Tasdiqlash"
-                                >
-                                  <Check size={14} /> Tasdiqlash
-                                </button>
-                              )}
-                              {app.status === 'CONFIRMED' && (
-                                <button 
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => updateAppointmentStatus(app.id, 'IN_PROGRESS')}
-                                >
-                                  Kresloga o'tkazish
-                                </button>
-                              )}
-                              {app.status === 'IN_PROGRESS' && (
-                                <button 
-                                  className="btn btn-success btn-sm"
-                                  onClick={() => updateAppointmentStatus(app.id, 'COMPLETED')}
-                                >
-                                  Yakunlash
-                                </button>
-                              )}
-
-                              <button 
-                                className="btn btn-outline btn-sm" 
-                                onClick={() => setSelectedPatient(app)}
-                                title="Bemor Tibbiy Kartasini O'chish"
-                              >
-                                <FileText size={14} /> Karta
-                              </button>
-
-                              <button 
-                                className="btn btn-outline btn-sm" 
-                                onClick={() => setReminderModal(app)}
-                                title="Telegram Eslatmasi Yuborish"
-                              >
-                                <Send size={14} color="#0284c7" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Right Side: Doctors Duty Control & Quick Live Queue */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Doctor Status Switcher Panel */}
-              <div className="card">
-                <div className="card-title">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <UserCheck size={20} color="var(--primary)" /> Shifokorlar Ish Holati
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {doctors.map(doc => (
-                    <div key={doc.id} style={{ padding: '14px', borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--card)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '15px' }}>{doc.firstName} {doc.lastName}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{doc.specialization}</div>
-                        </div>
-
-                        {doc.dutyStatus === 'WORKING' && <span className="badge badge-success">Ishda (Bo'sh)</span>}
-                        {doc.dutyStatus === 'IN_SESSION' && <span className="badge badge-warning">Bemor bilan</span>}
-                        {doc.dutyStatus === 'OFF_DUTY' && <span className="badge badge-gray">Ishdamas</span>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {pendingAppointments.map(app => (
+                    <div key={app.id} className="queue-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px', background: 'var(--table-head-bg)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 800, fontSize: '15px' }}>{app.patient.firstName} {app.patient.lastName}</span>
+                        <span className="badge badge-warning" style={{ fontSize: '10px' }}>PENDING</span>
                       </div>
 
-                      {/* Status Toggle Buttons */}
-                      <div style={{ display: 'flex', gap: '6px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        📞 <b>{app.patient.phoneNumber}</b> {app.patient.telegramId && `| 💬 ${app.patient.telegramId}`}
+                      </div>
+
+                      <div style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 700 }}>
+                        👉 {app.doctor.firstName} — {app.service.name}
+                      </div>
+
+                      {app.patient.symptom && (
+                        <div style={{ fontSize: '11px', color: '#d97706', background: '#fffbe6', padding: '4px 8px', borderRadius: '6px', width: '100%' }}>
+                          <b>Simptom:</b> {app.patient.symptom}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} /> {app.startTime.split('T')[1]?.substring(0, 5)} ({app.startTime.split('T')[0]})
+                        </span>
+
                         <button 
-                          className={`btn btn-sm ${doc.dutyStatus === 'WORKING' ? 'btn-success' : 'btn-outline'}`}
-                          onClick={() => toggleDoctorDuty(doc.id, 'WORKING')}
-                          style={{ flex: 1, fontSize: '11px' }}
+                          className="btn btn-success btn-sm"
+                          onClick={() => handleApproveAppointment(app)}
+                          style={{ fontSize: '11px' }}
                         >
-                          Ishda
-                        </button>
-                        <button 
-                          className={`btn btn-sm ${doc.dutyStatus === 'IN_SESSION' ? 'btn-warning' : 'btn-outline'}`}
-                          onClick={() => toggleDoctorDuty(doc.id, 'IN_SESSION')}
-                          style={{ flex: 1, fontSize: '11px' }}
-                        >
-                          Band
-                        </button>
-                        <button 
-                          className={`btn btn-sm ${doc.dutyStatus === 'OFF_DUTY' ? 'btn-danger' : 'btn-outline'}`}
-                          onClick={() => toggleDoctorDuty(doc.id, 'OFF_DUTY')}
-                          style={{ flex: 1, fontSize: '11px' }}
-                        >
-                          Damda
+                          <Check size={14} /> Tasdiqlash
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Call Next Patient Quick Action */}
-              <div className="card" style={{ background: 'linear-gradient(135deg, #0284c7, #06b6d4)', color: 'white' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <Volume2 size={28} />
-                  <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Keyingi Bemorni Chaqirish</h3>
-                </div>
-                <p style={{ fontSize: '13px', opacity: 0.9, marginBottom: '16px' }}>
-                  Resepshn monitoriga navbatdagi bemor ismini avtomatik chiqarish va ovozli e'lon qilish.
-                </p>
-                <button 
-                  className="btn" 
-                  style={{ background: 'white', color: '#0284c7', width: '100%', fontWeight: 800 }}
-                  onClick={() => {
-                    const next = appointments.find(a => a.status === 'CONFIRMED' || a.status === 'PENDING');
-                    if (next) setCallingPatient(next);
-                  }}
-                >
-                  <Volume2 size={16} /> Navbatdagini Chaqirish
-                </button>
-              </div>
-
+              )}
             </div>
+
+            {/* COLUMN 2 (MIDDLE): CONFIRMED & UPCOMING LIVE QUEUE (CHRONOLOGICAL TOP-TO-BOTTOM) */}
+            <div className="card" style={{ borderLeft: '4px solid #0284c7' }}>
+              <div className="card-title">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px' }}>
+                  <UserCheck size={18} color="var(--primary)" /> 2. Navbati Yaqinlashganlar (Jonli Tartib)
+                </span>
+                <span className="badge badge-primary">{confirmedQueue.length} ta</span>
+              </div>
+
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+                Vaqti yaqinlashgan qabullar tepadan pastga qarab tartiblangan. (#1 eng birinchi).
+              </p>
+
+              {confirmedQueue.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
+                  <Calendar size={36} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                  <p style={{ fontSize: '13px', fontWeight: 600 }}>Hozircha navbati kelganlar yo'q</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {confirmedQueue.map((app, rankIdx) => (
+                    <div 
+                      key={app.id} 
+                      className="queue-item"
+                      style={{ 
+                        flexDirection: 'column', 
+                        alignItems: 'flex-start', 
+                        gap: '10px',
+                        borderLeft: rankIdx === 0 ? '6px solid #10b981' : app.status === 'IN_PROGRESS' ? '6px solid #7e22ce' : '4px solid var(--primary)',
+                        background: rankIdx === 0 ? 'rgba(16, 185, 129, 0.05)' : 'var(--card)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ padding: '4px 8px', borderRadius: '8px', background: rankIdx === 0 ? '#10b981' : 'var(--primary)', color: 'white', fontWeight: 900, fontSize: '12px' }}>
+                            #{rankIdx + 1} NAVBAT
+                          </span>
+                          <span style={{ fontWeight: 800, fontSize: '16px' }}>{app.patient.firstName} {app.patient.lastName}</span>
+                        </div>
+
+                        {app.status === 'IN_PROGRESS' ? (
+                          <span className="badge badge-purple">QABULDA (KRESLODA)</span>
+                        ) : (
+                          <span className="badge badge-primary">TASDIQLANGAN</span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                        <span>📞 {app.patient.phoneNumber}</span>
+                        <span>👨‍⚕️ <b>{app.doctor.firstName}</b></span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)' }}>
+                          ⏰ {app.startTime.split('T')[1]?.substring(0, 5)} - {app.endTime.split('T')[1]?.substring(0, 5)} ({app.service.name})
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {app.status === 'CONFIRMED' && (
+                            <button 
+                              className="btn btn-primary btn-sm"
+                              onClick={() => updateAppointmentStatus(app.id, 'IN_PROGRESS')}
+                              style={{ fontSize: '11px' }}
+                            >
+                              Kresloga o'tkazish
+                            </button>
+                          )}
+                          {app.status === 'IN_PROGRESS' && (
+                            <button 
+                              className="btn btn-success btn-sm"
+                              onClick={() => updateAppointmentStatus(app.id, 'COMPLETED')}
+                              style={{ fontSize: '11px' }}
+                            >
+                              Yakunlash
+                            </button>
+                          )}
+                          <button 
+                            className="btn btn-outline btn-sm"
+                            onClick={() => setSelectedPatient(app)}
+                            style={{ fontSize: '11px' }}
+                          >
+                            Karta
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* COLUMN 3 (RIGHT): DOCTORS ROSTER */}
+            <div className="card" style={{ borderLeft: '4px solid #10b981' }}>
+              <div className="card-title">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px' }}>
+                  <Stethoscope size={18} color="#10b981" /> 3. Shifokorlar Ish Holati
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {doctors.map(doc => (
+                  <div key={doc.id} style={{ padding: '12px', borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--card)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                      <img src={doc.image} alt={doc.firstName} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '14px' }}>{doc.firstName} {doc.lastName}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{doc.specialization}</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button 
+                        className={`btn btn-sm ${doc.dutyStatus === 'WORKING' ? 'btn-success' : 'btn-outline'}`}
+                        onClick={() => toggleDoctorDuty(doc.id, 'WORKING')}
+                        style={{ flex: 1, fontSize: '10px', padding: '4px 6px' }}
+                      >
+                        Ishda
+                      </button>
+                      <button 
+                        className={`btn btn-sm ${doc.dutyStatus === 'IN_SESSION' ? 'btn-warning' : 'btn-outline'}`}
+                        onClick={() => toggleDoctorDuty(doc.id, 'IN_SESSION')}
+                        style={{ flex: 1, fontSize: '10px', padding: '4px 6px' }}
+                      >
+                        Band
+                      </button>
+                      <button 
+                        className={`btn btn-sm ${doc.dutyStatus === 'OFF_DUTY' ? 'btn-danger' : 'btn-outline'}`}
+                        onClick={() => toggleDoctorDuty(doc.id, 'OFF_DUTY')}
+                        style={{ flex: 1, fontSize: '10px', padding: '4px 6px' }}
+                      >
+                        Damda
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         )}
 
-        {/* TAB 2: FULL APPOINTMENTS MANAGER */}
+        {/* TAB 2: FULL APPOINTMENTS TABLE */}
         {activeTab === 'appointments' && (
           <div className="card">
             <div className="card-title">
-              <span>Barcha Qabullar va Izlash</span>
+              <span>Barcha Qabullar Ro'yxati</span>
               <input 
                 type="text"
                 placeholder="Bemor ismi, telefon yoki shifokor..."
@@ -775,7 +799,7 @@ export default function App() {
                     </td>
                     <td>{app.doctor.firstName} {app.doctor.lastName}</td>
                     <td>{app.service.name}</td>
-                    <td style={{ fontWeight: 800, color: 'var(--primary)' }}>{app.service.price.toLocaleString()} UZS</td>
+                    <td style={{ fontWeight: 800, color: 'var(--primary)' }}>{app.service.price ? `${app.service.price.toLocaleString()} UZS` : "BEPUL"}</td>
                     <td>
                       {app.status === 'PENDING' && <span className="badge badge-warning">PENDING</span>}
                       {app.status === 'CONFIRMED' && <span className="badge badge-primary">CONFIRMED</span>}
@@ -810,11 +834,7 @@ export default function App() {
               <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Bosilgan tish: <b>#{selectedTooth}</b></span>
             </div>
 
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Tish raqamini tanlang va unga tegishli holatni belgilang. Har bir tish uchun karies, implant yoki plomba diagnostikasi saqlanadi.
-            </p>
-
-            {/* Teeth Grid Upper (11-18, 21-28) & Lower (41-48, 31-38) */}
+            {/* Teeth Grid Upper & Lower */}
             <div style={{ marginBottom: '24px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>YUQORI JAG' (MAXILLA)</div>
               <div className="teeth-matrix-grid" style={{ marginBottom: '16px' }}>
@@ -915,32 +935,9 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: RECEPTION MONITOR CALL SCREEN */}
-        {activeTab === 'call-display' && (
-          <div className="card" style={{ textAlign: 'center', padding: '60px 20px', background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: 'white', borderRadius: '28px' }}>
-            <Volume2 size={64} color="#38bdf8" style={{ marginBottom: '20px' }} />
-            <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px' }}>GAVHAR STOMA - NAVBAT MONITORI</h2>
-            <p style={{ color: '#94a3b8', fontSize: '16px', marginBottom: '40px' }}>Resepshn ekranida namoyish etiladigan jonli chaqiruv paneli</p>
-
-            {callingPatient ? (
-              <div style={{ padding: '36px', borderRadius: '24px', background: 'rgba(56, 189, 248, 0.15)', border: '2px solid #38bdf8', maxWidth: '600px', margin: '0 auto' }}>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#38bdf8', letterSpacing: '1px', textTransform: 'uppercase' }}>Hozirgi Chaqirilgan Bemor</div>
-                <div style={{ fontSize: '42px', fontWeight: 900, margin: '16px 0 8px', color: '#ffffff' }}>
-                  {callingPatient.patient.firstName} {callingPatient.patient.lastName}
-                </div>
-                <div style={{ fontSize: '20px', color: '#cbd5e1' }}>
-                  👉 {callingPatient.doctor.firstName} qabuliga (1-xona)
-                </div>
-              </div>
-            ) : (
-              <div style={{ fontSize: '20px', color: '#64748b' }}>Hozircha faol chaqiruv yo'q</div>
-            )}
-          </div>
-        )}
-
       </div>
 
-      {/* MODAL 1: PATIENT MEDICAL RECORD DRAWER (BEMOR KARTASI) */}
+      {/* MODAL 1: PATIENT MEDICAL RECORD DRAWER */}
       {selectedPatient && (
         <div className="modal-overlay" onClick={() => setSelectedPatient(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -965,6 +962,12 @@ export default function App() {
                 <span>📞 <a href={`tel:${selectedPatient.patient.phoneNumber}`} style={{ color: 'var(--primary)', fontWeight: 700 }}>{selectedPatient.patient.phoneNumber}</a></span>
                 {selectedPatient.patient.telegramId && <span>💬 Telegram: <b>{selectedPatient.patient.telegramId}</b></span>}
               </div>
+
+              {selectedPatient.patient.symptom && (
+                <div style={{ marginTop: '10px', padding: '8px 12px', background: '#fffbe6', borderRadius: '8px', fontSize: '13px', color: '#d97706', fontWeight: 600 }}>
+                  <b>Shikoyat / Simptom:</b> {selectedPatient.patient.symptom}
+                </div>
+              )}
             </div>
 
             <h4 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '12px' }}>Tashxis va Tishlar Holati:</h4>
@@ -990,67 +993,20 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 2: TELEGRAM REMINDER MODAL */}
-      {reminderModal && (
-        <div className="modal-overlay" onClick={() => setReminderModal(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Send size={20} color="#0284c7" /> Telegram Eslatmasi Yuborish
-              </h3>
-              <button onClick={() => setReminderModal(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
-                <XCircle size={20} color="var(--text-muted)" />
-              </button>
-            </div>
-
-            <div style={{ padding: '16px', borderRadius: '14px', background: '#f0f9ff', border: '1px solid #bae6fd', fontSize: '13.5px', color: '#0369a1', marginBottom: '20px', lineHeight: '1.6' }}>
-              "Hurmatli <b>{reminderModal.patient.firstName}</b>, Sizning Gavhar Stomatologiya klinikasida <b>{reminderModal.doctor.firstName}</b> qabuliga yozilgan vaqtingiz: <b>{reminderModal.startTime.split('T')[1].substring(0, 5)}</b>. Manzil: Toshkent sh. Tel: +998901234567"
-            </div>
-
-            <button 
-              className="btn btn-primary" 
-              style={{ width: '100%' }}
-              onClick={() => {
-                alert(`Eslatma ${reminderModal.patient.firstName} ga Telegram bot orqali yuborildi!`);
-                setReminderModal(null);
-              }}
-            >
-              <Send size={16} /> Telegram Orqali Yuborish
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: NEW WALK-IN APPOINTMENT */}
+      {/* MODAL 2: ADMIN WALK-IN / NEW APPOINTMENT MODAL WITH DYNAMIC SLOT PREVENTER */}
       {newAppointmentModal && (
         <div className="modal-overlay" onClick={() => setNewAppointmentModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '16px' }}>Yangi Qabul / Walk-in Navbat</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <UserPlus size={22} color="var(--primary)" /> Jonli Navbat / Yangi Bemor Qo'shish
+              </h3>
+              <button onClick={() => setNewAppointmentModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                <XCircle size={22} color="var(--text-muted)" />
+              </button>
+            </div>
+
             <form onSubmit={handleCreateAppointment}>
-              <div className="form-group">
-                <label className="form-label">Bemor Ismi Familiyasi</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="masalan: Alisher Navoiy"
-                  value={newPatientName}
-                  onChange={e => setNewPatientName(e.target.value)}
-                  required 
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Telefon Raqami</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="+998901234567"
-                  value={newPatientPhone}
-                  onChange={e => setNewPatientPhone(e.target.value)}
-                  required 
-                />
-              </div>
-
               <div className="form-group">
                 <label className="form-label">Shifokor</label>
                 <select className="form-control" value={selectedDoctorId} onChange={e => setSelectedDoctorId(e.target.value)}>
@@ -1064,18 +1020,69 @@ export default function App() {
                 <label className="form-label">Xizmat Turi</label>
                 <select className="form-control" value={selectedServiceId} onChange={e => setSelectedServiceId(e.target.value)}>
                   {services.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} - {s.price.toLocaleString()} UZS</option>
+                    <option key={s.id} value={s.id}>{s.name} - {s.price ? `${s.price.toLocaleString()} UZS` : "BEPUL"} ({s.durationMinutes || 30} daqiqa)</option>
                   ))}
                 </select>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '24px' }}>
-                <label className="form-label">Qabul Vaqti</label>
+              <div className="form-group">
+                <label className="form-label">Qabul Sanasi</label>
                 <input 
-                  type="time" 
+                  type="date"
+                  className="form-control"
+                  value={newAppDate}
+                  onChange={e => setNewAppDate(e.target.value)}
+                />
+              </div>
+
+              {/* ADMIN SLOT AVAILABILITY CHECKER */}
+              <div className="form-group">
+                <label className="form-label">Qabul Vaqti (Bo'sh vaqtlar ko'rsatiladi)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '6px', marginTop: '6px' }}>
+                  {adminSlotStatuses.map(slot => (
+                    <button
+                      key={slot.timeStr}
+                      type="button"
+                      disabled={slot.isOccupied}
+                      onClick={() => setNewAppTime(slot.timeStr)}
+                      style={{
+                        padding: '8px',
+                        borderRadius: '10px',
+                        border: slot.isOccupied ? '1px solid #fca5a5' : newAppTime === slot.timeStr ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                        background: slot.isOccupied ? '#fee2e2' : newAppTime === slot.timeStr ? '#0284c7' : 'var(--card)',
+                        color: slot.isOccupied ? '#b91c1c' : newAppTime === slot.timeStr ? 'white' : '#0f172a',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: slot.isOccupied ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {slot.timeStr} {slot.isOccupied ? "(BAND)" : "(BO'SH)"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Bemor Ismi Familiyasi *</label>
+                <input 
+                  type="text" 
                   className="form-control" 
-                  value={newAppTime}
-                  onChange={e => setNewAppTime(e.target.value)}
+                  placeholder="masalan: Alisher Navoiy"
+                  value={newPatientName}
+                  onChange={e => setNewPatientName(e.target.value)}
+                  required 
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label">Telefon Raqami *</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="+998901234567"
+                  value={newPatientPhone}
+                  onChange={e => setNewPatientPhone(e.target.value)}
+                  required 
                 />
               </div>
 
