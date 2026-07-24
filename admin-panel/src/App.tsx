@@ -51,6 +51,15 @@ export interface ToothCondition {
   notes?: string;
 }
 
+export interface TreatmentLog {
+  date: string;
+  doctorName: string;
+  symptom?: string;
+  diagnosis: string;
+  treatmentDone: string;
+  amountPaid: number;
+}
+
 export interface Appointment {
   id: string;
   patientId: string;
@@ -77,8 +86,11 @@ export interface Appointment {
   status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   isLiveQueue: boolean;
   teethNotes?: ToothCondition[];
+  treatmentLogs?: TreatmentLog[];
   missedCount?: number;
   clinicalDiagnosis?: string;
+  treatmentDone?: string;
+  amountPaid?: number;
   createdAt: string;
 }
 
@@ -256,6 +268,60 @@ export default function App() {
   const [followUpModal, setFollowUpModal] = useState<Appointment | null>(null);
   const [followUpDays, setFollowUpDays] = useState(2);
   const [followUpTime, setFollowUpTime] = useState('10:00');
+
+  // Finish Treatment Modal State (Nima bo'lgan, Nima ish qilingan, Qancha to'langan)
+  const [completeModalApp, setCompleteModalApp] = useState<Appointment | null>(null);
+  const [finishDiagnosis, setFinishDiagnosis] = useState('');
+  const [finishTreatmentDone, setFinishTreatmentDone] = useState('');
+  const [finishAmountPaid, setFinishAmountPaid] = useState<number>(0);
+
+  const openCompleteModal = (app: Appointment) => {
+    setCompleteModalApp(app);
+    setFinishDiagnosis(app.clinicalDiagnosis || 'Karies davolash / Ko\'rik');
+    setFinishTreatmentDone(app.treatmentDone || `${app.service.name} muolajasi to'liq o'tkazildi`);
+    setFinishAmountPaid(app.amountPaid || app.service.price || 0);
+  };
+
+  const handleSaveTreatmentCompletion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!completeModalApp) return;
+
+    const newLog: TreatmentLog = {
+      date: TODAY,
+      doctorName: `${completeModalApp.doctor.firstName} ${completeModalApp.doctor.lastName}`,
+      symptom: completeModalApp.patient.symptom || 'Ko\'rik',
+      diagnosis: finishDiagnosis,
+      treatmentDone: finishTreatmentDone,
+      amountPaid: finishAmountPaid
+    };
+
+    const updated = appointments.map(app => {
+      if (app.id === completeModalApp.id) {
+        const existingLogs = app.treatmentLogs || [];
+        return {
+          ...app,
+          status: 'COMPLETED' as const,
+          endTime: new Date().toISOString(),
+          clinicalDiagnosis: finishDiagnosis,
+          treatmentDone: finishTreatmentDone,
+          amountPaid: finishAmountPaid,
+          treatmentLogs: [newLog, ...existingLogs]
+        };
+      }
+      return app;
+    });
+
+    setAppointments(updated);
+    localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+    // Set doctor status back to WORKING
+    setDoctors(prev => prev.map(d => d.id === completeModalApp.doctorId ? { ...d, dutyStatus: 'WORKING' as const } : d));
+
+    setTelegramAlert(`✅ ${completeModalApp.patient.firstName} ning qabul ma'lumotlari saqlandi va qabul yakunlandi! (${finishAmountPaid.toLocaleString()} so'm)`);
+    setTimeout(() => setTelegramAlert(null), 5000);
+
+    setCompleteModalApp(null);
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -963,7 +1029,7 @@ export default function App() {
                           {app.status === 'IN_PROGRESS' && (
                             <button 
                               className="btn btn-success btn-sm"
-                              onClick={() => updateAppointmentStatus(app.id, 'COMPLETED')}
+                              onClick={() => openCompleteModal(app)}
                               style={{ fontSize: '11px' }}
                             >
                               Yakunlash
@@ -1576,148 +1642,41 @@ export default function App() {
               )}
             </div>
 
-            {/* Patient-Linked 32-Tooth Odontogram Grid */}
-            <h4 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={18} color="var(--primary)" /> Bemorning 32-Tish Odontogramma Chart-i (FDI)
+            {/* PATIENT CHRONOLOGICAL TREATMENT HISTORY LOG */}
+            <h4 style={{ fontSize: '15px', fontWeight: 800, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={18} color="var(--primary)" /> Bemorning Davolash Tarixi & Muolajalar Logi
             </h4>
 
-            <div className="teeth-arch-container" style={{ marginBottom: '20px' }}>
-              
-              {/* YUQORI JAG' (MAXILLA ARCH) */}
-              <div className="jaw-arch">
-                <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  🦷 YUQORI JAG' (18 - 28)
-                </div>
-                <div className="arch-teeth-row">
-                  {/* Quadrant 1 (Right): 18 -> 11 */}
-                  <div className="quadrant-group">
-                    {[18,17,16,15,14,13,12,11].map(num => {
-                      const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
-                      const st = cond?.status || 'Sog\'lom';
-                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
-
-                      return (
-                        <button 
-                          key={num}
-                          type="button"
-                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
-                          onClick={() => setSelectedTooth(num)}
-                        >
-                          <div>{num}</div>
-                          <div style={{ fontSize: '8px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
-                        </button>
-                      );
-                    })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', maxHeight: '320px', overflowY: 'auto' }}>
+              {(selectedPatient.treatmentLogs && selectedPatient.treatmentLogs.length > 0 ? selectedPatient.treatmentLogs : [
+                {
+                  date: selectedPatient.startTime.split('T')[0],
+                  doctorName: `${selectedPatient.doctor.firstName} ${selectedPatient.doctor.lastName}`,
+                  symptom: selectedPatient.patient.symptom || 'Shikoyat bo\'yicha',
+                  diagnosis: selectedPatient.clinicalDiagnosis || 'Karies & Diagnostika',
+                  treatmentDone: selectedPatient.treatmentDone || `${selectedPatient.service.name} muolajasi o'tkazildi`,
+                  amountPaid: selectedPatient.amountPaid || selectedPatient.service.price || 0
+                }
+              ]).map((log, idx) => (
+                <div key={idx} style={{ padding: '14px', borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)' }}>
+                      📅 {log.date} | 👨‍⚕️ {log.doctorName}
+                    </span>
+                    <span className="badge badge-success" style={{ fontWeight: 800 }}>
+                      💵 {log.amountPaid ? `${log.amountPaid.toLocaleString()} UZS` : "BEPUL"}
+                    </span>
                   </div>
 
-                  {/* Midline Divider */}
-                  <div className="midline-divider" />
-
-                  {/* Quadrant 2 (Left): 21 -> 28 */}
-                  <div className="quadrant-group">
-                    {[21,22,23,24,25,26,27,28].map(num => {
-                      const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
-                      const st = cond?.status || 'Sog\'lom';
-                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
-
-                      return (
-                        <button 
-                          key={num}
-                          type="button"
-                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
-                          onClick={() => setSelectedTooth(num)}
-                        >
-                          <div>{num}</div>
-                          <div style={{ fontSize: '8px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* PASTKI JAG' (MANDIBLE ARCH) */}
-              <div className="jaw-arch">
-                <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  🦷 PASTKI JAG' (48 - 38)
-                </div>
-                <div className="arch-teeth-row">
-                  {/* Quadrant 4 (Right): 48 -> 41 */}
-                  <div className="quadrant-group">
-                    {[48,47,46,45,44,43,42,41].map(num => {
-                      const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
-                      const st = cond?.status || 'Sog\'lom';
-                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
-
-                      return (
-                        <button 
-                          key={num}
-                          type="button"
-                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
-                          onClick={() => setSelectedTooth(num)}
-                        >
-                          <div>{num}</div>
-                          <div style={{ fontSize: '8px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
-                        </button>
-                      );
-                    })}
+                  <div style={{ fontSize: '13px' }}>
+                    <b>Tashxis:</b> {log.diagnosis}
                   </div>
 
-                  {/* Midline Divider */}
-                  <div className="midline-divider" />
-
-                  {/* Quadrant 3 (Left): 31 -> 38 */}
-                  <div className="quadrant-group">
-                    {[31,32,33,34,35,36,37,38].map(num => {
-                      const cond = (selectedPatient.teethNotes || toothConditions).find(t => t.number === num);
-                      const st = cond?.status || 'Sog\'lom';
-                      const stClass = st === 'Karies' ? 'status-caries' : st === 'Plomba' ? 'status-filling' : st === 'Vinir' ? 'status-veneer' : st === 'Implant' ? 'status-implant' : st === 'Yulib tashlangan' ? 'status-extracted' : 'status-healthy';
-
-                      return (
-                        <button 
-                          key={num}
-                          type="button"
-                          className={`tooth-btn ${stClass} ${selectedTooth === num ? 'selected' : ''}`}
-                          onClick={() => setSelectedTooth(num)}
-                        >
-                          <div>{num}</div>
-                          <div style={{ fontSize: '8px', fontWeight: 700 }}>{st.substring(0, 3)}</div>
-                        </button>
-                      );
-                    })}
+                  <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', background: 'var(--table-head-bg)', padding: '8px 10px', borderRadius: '8px' }}>
+                    <b>Bajarilgan Muolaja & Yechim:</b> {log.treatmentDone}
                   </div>
                 </div>
-              </div>
-
-              {selectedTooth && (
-                <div style={{ padding: '10px', borderRadius: '12px', background: 'var(--card)', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, marginBottom: '6px' }}>Tish #{selectedTooth} uchun holat tanlang:</div>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {[
-                      { label: "Sog'lom", status: "Sog'lom", cls: "btn-outline" },
-                      { label: "Karies", status: "Karies", cls: "btn-warning" },
-                      { label: "Plomba", status: "Plomba", cls: "btn-primary" },
-                      { label: "Vinir", status: "Vinir", cls: "btn-outline" },
-                      { label: "Implant", status: "Implant", cls: "btn-success" },
-                      { label: "Yulib tashlangan", status: "Yulib tashlangan", cls: "btn-danger" }
-                    ].map(item => (
-                      <button 
-                        key={item.status}
-                        type="button"
-                        className={`btn btn-sm ${item.cls}`}
-                        style={{ fontSize: '10px', padding: '4px 8px' }}
-                        onClick={() => {
-                          updateToothStatus(selectedTooth, item.status as ToothCondition['status']);
-                          const updatedTeeth = [...(selectedPatient.teethNotes || []), { number: selectedTooth, status: item.status as ToothCondition['status'] }];
-                          setSelectedPatient({ ...selectedPatient, teethNotes: updatedTeeth });
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
@@ -2165,6 +2124,82 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* MODAL: FINISH TREATMENT & RECORD CLINICAL SUMMARY */}
+      {completeModalApp && (
+        <div className="modal-overlay" onClick={() => setCompleteModalApp(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ padding: '10px', borderRadius: '12px', background: '#dcfce7', color: '#15803d' }}>
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Qabulni Yakunlash & Bayonnoma</h3>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Bemor: <b>{completeModalApp.patient.firstName} {completeModalApp.patient.lastName}</b>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setCompleteModalApp(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                <XCircle size={22} color="var(--text-muted)" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTreatmentCompletion}>
+              <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'var(--table-head-bg)', marginBottom: '16px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+                <span>👨‍⚕️ Shifokor: <b>{completeModalApp.doctor.firstName} {completeModalApp.doctor.lastName}</b></span>
+                <span>📅 Sana: <b>{TODAY}</b></span>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">1. Diagnostika / Tashxis (Nima bo'lgan?)</label>
+                <input 
+                  type="text"
+                  required
+                  className="form-control"
+                  placeholder="masalan: 2-darajali karies, pulsit, implantatsiyaga ko'rik..."
+                  value={finishDiagnosis}
+                  onChange={e => setFinishDiagnosis(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">2. Bajarilgan Muolaja & Yechim (Nima ish qilindi?)</label>
+                <textarea 
+                  required
+                  rows={3}
+                  className="form-control"
+                  placeholder="masalan: #16 tish nemis mikroskopi ostida tozalandi va plomba o'rnatildi..."
+                  value={finishTreatmentDone}
+                  onChange={e => setFinishTreatmentDone(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">3. To'langan Summa (UZS) *</label>
+                <input 
+                  type="number"
+                  required
+                  className="form-control"
+                  style={{ fontWeight: 800, color: '#10b981', fontSize: '16px' }}
+                  value={finishAmountPaid}
+                  onChange={e => setFinishAmountPaid(Number(e.target.value))}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setCompleteModalApp(null)}>
+                  Bekor qilish
+                </button>
+                <button type="submit" className="btn btn-success" style={{ flex: 1.5, fontWeight: 800 }}>
+                  <Check size={18} /> Saqlash & Qabulni Yakunlash
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* HIDDEN PRINT CONTAINER FOR THERMAL RECEIPT / CHEK PRINTING */}
       <div id="thermal-receipt-print">
         {selectedPatient ? (
@@ -2178,15 +2213,18 @@ export default function App() {
             </div>
             <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
             <div style={{ fontWeight: 'bold', fontSize: '13px', textAlign: 'center', marginBottom: '6px' }}>
-              QABUL TIKETI #{selectedPatient.id.substring(0, 6)}
+              ELEKTRON TIBBIY KARTA TIKETI #{selectedPatient.id.substring(0, 6)}
             </div>
             <div>BEMOR: {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}</div>
             <div>TEL: {selectedPatient.patient.phoneNumber}</div>
             <div>SHIFOKOR: {selectedPatient.doctor.firstName} {selectedPatient.doctor.lastName}</div>
-            <div>XIZMAT: {selectedPatient.service.name}</div>
             <div>SANA: {selectedPatient.startTime.split('T')[0]}</div>
-            <div>VAQT: {selectedPatient.startTime.split('T')[1]?.substring(0, 5)} - {selectedPatient.endTime.split('T')[1]?.substring(0, 5)}</div>
+            <div>VAQT: {selectedPatient.startTime.split('T')[1]?.substring(0, 5)}</div>
             {selectedPatient.patient.symptom && <div>SHIKOYAT: {selectedPatient.patient.symptom}</div>}
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
+            <div><b>TASHXIS:</b> {selectedPatient.clinicalDiagnosis || "Stomatologik ko'rik va diagnostika"}</div>
+            <div><b>BAJARILGAN ISH:</b> {selectedPatient.treatmentDone || selectedPatient.service.name}</div>
+            <div><b>TO'LANGAN SUMMA:</b> {selectedPatient.amountPaid ? selectedPatient.amountPaid.toLocaleString() : selectedPatient.service.price ? selectedPatient.service.price.toLocaleString() : "BEPUL"} UZS</div>
             <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
             <div style={{ fontSize: '10px', textAlign: 'center' }}>
               Rahmat! Sog'lig'ingizni asrang.<br/>
