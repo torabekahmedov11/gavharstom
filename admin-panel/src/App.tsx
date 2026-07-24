@@ -982,7 +982,8 @@ export default function App() {
 
         {/* TAB 1: 3-COLUMN REFINED LIVE CRM DASHBOARD */}
         {activeTab === 'dashboard' && (
-          <div className="grid-3-col">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: '16px' }}>
             
             {/* COLUMN 1 (LEFT): UNCONFIRMED / PENDING APPOINTMENTS */}
             <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
@@ -1144,16 +1145,17 @@ export default function App() {
                 </div>
               )}
             </div>
+            </div> {/* End of top 2 columns */}
 
-            {/* COLUMN 3 (RIGHT): DOCTORS ROSTER */}
-            <div className="card" style={{ borderLeft: '4px solid #10b981' }}>
+            {/* DOCTORS ROSTER (BOTTOM ROW) */}
+            <div className="card" style={{ borderTop: '4px solid #10b981' }}>
               <div className="card-title">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '16px' }}>
                   <Stethoscope size={18} color="#10b981" /> 3. Shifokorlar Ish Holati
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
                 {doctors.map(doc => (
                   <div key={doc.id} style={{ padding: '12px', borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--card)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
@@ -1164,32 +1166,32 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
                       <button 
                         className={`btn btn-sm ${doc.dutyStatus === 'WORKING' ? 'btn-success' : 'btn-outline'}`}
                         onClick={() => toggleDoctorDuty(doc.id, 'WORKING')}
-                        style={{ flex: 1, fontSize: '9.5px', padding: '4px' }}
+                        style={{ flex: 1, fontSize: '12px', padding: '6px' }}
                       >
                         Ishda
                       </button>
                       <button 
                         className={`btn btn-sm ${doc.dutyStatus === 'IN_SESSION' ? 'btn-warning' : 'btn-outline'}`}
                         onClick={() => toggleDoctorDuty(doc.id, 'IN_SESSION')}
-                        style={{ flex: 1, fontSize: '9.5px', padding: '4px' }}
+                        style={{ flex: 1, fontSize: '12px', padding: '6px' }}
                       >
                         Band
                       </button>
                       <button 
                         className={`btn btn-sm ${doc.dutyStatus === 'SURGERY' ? 'btn-danger' : 'btn-outline'}`}
                         onClick={() => toggleDoctorDuty(doc.id, 'SURGERY')}
-                        style={{ flex: 1, fontSize: '9.5px', padding: '4px', background: doc.dutyStatus === 'SURGERY' ? '#7e22ce' : undefined, color: doc.dutyStatus === 'SURGERY' ? 'white' : undefined }}
+                        style={{ flex: 1, fontSize: '12px', padding: '6px', background: doc.dutyStatus === 'SURGERY' ? '#7e22ce' : undefined, color: doc.dutyStatus === 'SURGERY' ? 'white' : undefined }}
                       >
                         🩸 Operatsiya
                       </button>
                       <button 
                         className={`btn btn-sm ${doc.dutyStatus === 'OFF_DUTY' ? 'btn-danger' : 'btn-outline'}`}
                         onClick={() => toggleDoctorDuty(doc.id, 'OFF_DUTY')}
-                        style={{ flex: 1, fontSize: '9.5px', padding: '4px' }}
+                        style={{ flex: 1, fontSize: '12px', padding: '6px' }}
                       >
                         Damda
                       </button>
