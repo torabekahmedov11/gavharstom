@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, 
@@ -10,7 +10,6 @@ import {
   Clock, 
   Star, 
   MapPin, 
-  Stethoscope, 
   Sparkle,
   Phone,
   Zap,
@@ -20,7 +19,9 @@ import {
   HeartPulse,
   Menu,
   X,
-  CalendarCheck
+  CalendarCheck,
+  UserCheck,
+  AlertCircle
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -29,7 +30,7 @@ const DEFAULT_SERVICES = [
   {
     id: 's1',
     name: "Swiss Implantatsiya",
-    description: "Shveytsariya Straumann va Osstem implantlari. 1 kun ichida umrbod kafolatli yangi tish.",
+    description: "Shveytsariyaning Straumann va Osstem implantlari. 1 kun ichida umrbod kafolatli yangi tish.",
     price: 4500000,
     durationMinutes: 45,
     icon: Gem,
@@ -39,7 +40,7 @@ const DEFAULT_SERVICES = [
   {
     id: 's2',
     name: "Tish Oqartirish (Zoom 4)",
-    description: "Amerikaning Zoom 4 lazer texnologiyasi bilan 8 tongacha xavfsiz va og'riqsiz oqartirish.",
+    description: "Amerika Zoom 4 lazer texnologiyasi bilan 8 tongacha xavfsiz va og'riqsiz oqartirish.",
     price: 1200000,
     durationMinutes: 40,
     icon: Zap,
@@ -79,7 +80,7 @@ const DEFAULT_SERVICES = [
   {
     id: 's6',
     name: "Bolalar Stomatologiyasi",
-    description: "Kichkintoylar uchun maxsus multi-film va o'yin tarzida qo'rquvsiz va og'riqsiz davolash.",
+    description: "Kichkintoylar uchun maxsus multifilm va o'yin tarzida qo'rquvsiz va og'riqsiz davolash.",
     price: 250000,
     durationMinutes: 30,
     icon: HeartPulse,
@@ -115,6 +116,8 @@ const DEFAULT_DOCTORS = [
   }
 ];
 
+const TIME_SLOTS = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"];
+
 const REVIEWS = [
   {
     name: "Sardor Rahimov",
@@ -137,83 +140,94 @@ const REVIEWS = [
 ];
 
 function App() {
-  const [services, setServices] = useState<any[]>(DEFAULT_SERVICES);
-  const [doctors, setDoctors] = useState<any[]>(DEFAULT_DOCTORS);
+  const [services] = useState<any[]>(DEFAULT_SERVICES);
+  const [doctors] = useState<any[]>(DEFAULT_DOCTORS);
+  
+  // Booking Form State
+  const [selectedDoctorId, setSelectedDoctorId] = useState('d1');
   const [selectedService, setSelectedService] = useState('');
   const [firstName, setFirstName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('+998');
-  const [bookingDate, setBookingDate] = useState('');
+  const [bookingDate, setBookingDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [bookingTime, setBookingTime] = useState('10:00');
+  
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    fetch(`${API_URL}/web/services`)
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          const merged = data.map((item, idx) => ({
-            ...item,
-            icon: DEFAULT_SERVICES[idx % DEFAULT_SERVICES.length]?.icon || Gem,
-            gradient: DEFAULT_SERVICES[idx % DEFAULT_SERVICES.length]?.gradient || "linear-gradient(135deg, #0284c7, #06b6d4)",
-            tag: DEFAULT_SERVICES[idx % DEFAULT_SERVICES.length]?.tag || "Xizmat"
-          }));
-          setServices(merged);
-        }
-      })
-      .catch(e => console.log("Lokal xizmatlar ishlatilmoqda", e));
-
-    fetch(`${API_URL}/doctors`)
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped = data.map((doc: any, idx: number) => ({
-            id: doc.id,
-            name: `${doc.firstName} ${doc.lastName || ''}`.trim(),
-            role: doc.specialization || "Stomatolog Mutaxassis",
-            experience: doc.experience || DEFAULT_DOCTORS[idx % DEFAULT_DOCTORS.length]?.experience || "8+ Yillik Tajriba",
-            rating: doc.rating || DEFAULT_DOCTORS[idx % DEFAULT_DOCTORS.length]?.rating || "5.0",
-            image: doc.image || DEFAULT_DOCTORS[idx % DEFAULT_DOCTORS.length]?.image
-          }));
-          setDoctors(mapped);
-        }
-      })
-      .catch(e => console.log("Lokal shifokorlar ishlatilmoqda", e));
-  }, []);
+  // Already Booked Slots Prevention
+  const [bookedSlots, setBookedSlots] = useState<string[]>([
+    'd1_' + new Date().toISOString().split('T')[0] + '_09:30'
+  ]);
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+
+    // Validation
+    if (!firstName || firstName.trim().length < 3) {
+      setErrorMessage("Iltimos, ismingiz va familiyangizni to'liq kiriting!");
+      return;
+    }
+
+    if (!phoneNumber || phoneNumber.length < 9) {
+      setErrorMessage("Iltimos, to'g'ri telefon raqam kiriting!");
+      return;
+    }
+
+    // Check if slot is already booked for this doctor
+    const slotKey = `${selectedDoctorId}_${bookingDate}_${bookingTime}`;
+    if (bookedSlots.includes(slotKey)) {
+      setErrorMessage("❌ Ushbu shifokorda tanlangan vaqtda qabul band! Iltimos, boshqa vaqt yoki shifokorni tanlang.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/web/book`, {
+      const selectedDocObj = doctors.find(d => d.id === selectedDoctorId);
+      
+      await fetch(`${API_URL}/web/book`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, phoneNumber, selectedService, bookingDate })
+        body: JSON.stringify({ 
+          firstName, 
+          phoneNumber, 
+          doctorId: selectedDoctorId,
+          doctorName: selectedDocObj?.name,
+          selectedService, 
+          bookingDate,
+          bookingTime 
+        })
       });
-      if (res.ok) {
-        setSuccess(true);
-        setFirstName('');
-        setPhoneNumber('+998');
-      } else {
-        setSuccess(true);
-      }
+
+      setBookedSlots(prev => [...prev, slotKey]);
+      setSuccess(true);
+      setFirstName('');
+      setPhoneNumber('+998');
     } catch (error) {
+      setBookedSlots(prev => [...prev, slotKey]);
       setSuccess(true);
     }
     setLoading(false);
   };
 
+  const selectDoctorAndScroll = (docId: string) => {
+    setSelectedDoctorId(docId);
+    document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="app-container">
-      {/* TOP NAVBAR */}
+      {/* TOP NAVBAR WITH BEAUTIFUL GAVHAR LOGO */}
       <nav className="navbar">
         <div className="navbar-inner">
           <a href="#" className="logo-brand">
-            <div className="logo-icon">
-              <Stethoscope size={22} />
+            <div className="logo-icon" style={{ background: 'linear-gradient(135deg, #0284c7, #06b6d4)', boxShadow: '0 4px 15px rgba(2, 132, 199, 0.3)' }}>
+              <Gem size={22} color="white" />
             </div>
             <div className="logo-text">
-              GAVHAR <span>STOMATOLOGIYA</span>
+              GAVHAR <span style={{ color: '#0284c7', fontWeight: 800 }}>STOMA</span>
             </div>
           </a>
 
@@ -235,7 +249,6 @@ function App() {
               Navbatga yozilish
             </button>
 
-            {/* MOBILE MENU TOGGLE */}
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="mobile-menu-btn"
@@ -267,7 +280,7 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION WITH REALISTIC CREATIVE TOOTH ART */}
       <section className="hero-wrapper">
         <motion.div 
           className="hero-left"
@@ -315,48 +328,21 @@ function App() {
           </div>
         </motion.div>
 
-        {/* ULTRA-RESPONSIVE INLINE SVG ARTWORK (ALWAYS LOADS 100% FAST) */}
+        {/* REALISTIC CREATIVE DENTAL ART CARD */}
         <motion.div 
           className="hero-art-box"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          <div className="tooth-svg-card">
-            {/* STUNNING CRYSTAL DIAMOND TOOTH SVG ARTWORK */}
-            <svg viewBox="0 0 200 220" width="100%" height="240" style={{ filter: 'drop-shadow(0 15px 25px rgba(2,132,199,0.25))' }}>
-              <defs>
-                <linearGradient id="toothGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ffffff" />
-                  <stop offset="50%" stopColor="#e0f2fe" />
-                  <stop offset="100%" stopColor="#bae6fd" />
-                </linearGradient>
-                <linearGradient id="diamondGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#38bdf8" />
-                  <stop offset="50%" stopColor="#0284c7" />
-                  <stop offset="100%" stopColor="#0369a1" />
-                </linearGradient>
-              </defs>
-
-              {/* FLOATING DIAMOND GEM */}
-              <polygon points="100,10 125,35 100,60 75,35" fill="url(#diamondGrad)" />
-              <polygon points="100,10 125,35 100,35" fill="#7dd3fc" opacity="0.6" />
-
-              {/* TOOTH CROWN */}
-              <path d="M 60 75 C 50 65, 45 90, 50 115 C 55 140, 65 160, 75 195 C 80 205, 88 200, 92 180 C 96 160, 104 160, 108 180 C 112 200, 120 205, 125 195 C 135 160, 145 140, 150 115 C 155 90, 150 65, 140 75 C 128 85, 115 70, 100 70 C 85 70, 72 85, 60 75 Z" fill="url(#toothGradient)" stroke="#0284c7" strokeWidth="3" />
-              
-              {/* ENAMEL SHINE HIGHLIGHTS */}
-              <path d="M 65 85 Q 75 95 80 120" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.9" />
-              <circle cx="130" cy="95" r="4" fill="#38bdf8" />
-              <circle cx="140" cy="115" r="2.5" fill="#38bdf8" />
-
-              {/* SPARKLES */}
-              <path d="M 40 50 L 44 54 L 40 58 L 36 54 Z" fill="#0284c7" />
-              <path d="M 160 50 L 164 54 L 160 58 L 156 54 Z" fill="#38bdf8" />
-            </svg>
-
-            <div style={{ marginTop: '1rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>Gavhar Premium Tish</h3>
+          <div className="tooth-svg-card" style={{ padding: '1.2rem', textAlign: 'center' }}>
+            <img 
+              src="/hero_tooth.jpg" 
+              alt="Gavhar Real Crystal Tooth Render" 
+              style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', borderRadius: '20px', boxShadow: '0 15px 35px rgba(2, 132, 199, 0.2)' }}
+            />
+            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>Gavhar Crystal Premium Dental</h3>
               <p style={{ fontSize: '0.85rem', color: '#0284c7', fontWeight: 700, marginTop: '0.2rem' }}>
                 ✨ 100% Og'riqsiz & Nemis Texnologiyasi
               </p>
@@ -391,8 +377,8 @@ function App() {
         </div>
       </section>
 
-      {/* SERVICES SECTION WITH RELIABLE GRADIENT GLASS ICONS */}
-      <section id="services" style={{ padding: '3rem 0' }}>
+      {/* SERVICES SECTION */}
+      <section id="services" style={{ padding: '4rem 0' }}>
         <div className="section-header">
           <span className="section-tag">Xizmatlarimiz</span>
           <h2 className="section-title">Yuqori Sifatli Stomatologiya Xizmatlari</h2>
@@ -477,7 +463,7 @@ function App() {
         <div className="features-grid">
           <div className="feature-card glass-card">
             <div className="feature-icon-box">
-              <Stethoscope size={28} />
+              <Gem size={28} />
             </div>
             <h3 style={{ fontSize: '1.15rem', marginBottom: '0.4rem' }}>Nemis Mikroskoplari</h3>
             <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Har bir muolaja 20x kattalashtirish ostida 100% aniqlik bilan bajariladi.</p>
@@ -509,7 +495,7 @@ function App() {
         </div>
       </section>
 
-      {/* DOCTORS SECTION */}
+      {/* DOCTORS SECTION WITH DIRECT BOOKING LINK */}
       <section id="doctors" style={{ padding: '5rem 0' }}>
         <div className="section-header">
           <span className="section-tag">Mutaxassislarimiz</span>
@@ -517,23 +503,28 @@ function App() {
         </div>
 
         <div className="doctors-grid">
-          {doctors.map((doc, idx) => (
-            <div key={doc.id || idx} className="doctor-card glass-card">
+          {doctors.map((doc) => (
+            <div key={doc.id} className="doctor-card glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <img 
                 src={doc.image || "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400"} 
                 alt={doc.name} 
                 className="doctor-avatar"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name || 'Doctor')}&background=0284c7&color=fff&size=200`;
-                }}
               />
               <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '0.3rem' }}>{doc.name}</h3>
               <p style={{ color: '#0284c7', fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.8rem' }}>{doc.role}</p>
               
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.82rem', color: '#64748b' }}>
-                <span>💼 {doc.experience || "8+ Yillik Tajriba"}</span>
-                <span>⭐ {doc.rating || "5.0"} / 5.0</span>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.82rem', color: '#64748b', marginBottom: '1.2rem' }}>
+                <span>💼 {doc.experience}</span>
+                <span>⭐ {doc.rating} / 5.0</span>
               </div>
+
+              <button 
+                className="btn btn-secondary" 
+                style={{ fontSize: '0.85rem', width: '100%' }}
+                onClick={() => selectDoctorAndScroll(doc.id)}
+              >
+                <UserCheck size={16} /> Shu Shifokorga Yozilish
+              </button>
             </div>
           ))}
         </div>
@@ -564,7 +555,7 @@ function App() {
         </div>
       </section>
 
-      {/* BOOKING SECTION */}
+      {/* ENHANCED BOOKING SECTION WITH DOCTOR SELECTOR & TIME SLOT PREVENTER */}
       <section id="booking" style={{ padding: '5rem 0' }}>
         <div className="booking-container glass-card">
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -573,16 +564,23 @@ function App() {
             </div>
             <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Qabulga Yozilish</h2>
             <p style={{ color: '#64748b', marginTop: '0.4rem', fontSize: '0.9rem' }}>
-              Ma'lumotlaringizni qoldiring, administratorimiz 5 daqiqada bog'lanadi
+              Shifokorni tanlang va sizga qulay vaqtni belgilang!
             </p>
           </div>
+
+          {errorMessage && (
+            <div style={{ padding: '14px 18px', borderRadius: '14px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.9rem', fontWeight: 600, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #fca5a5' }}>
+              <AlertCircle size={20} />
+              {errorMessage}
+            </div>
+          )}
 
           {success ? (
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ textAlign: 'center', padding: '2.5rem', background: '#ecfdf5', borderRadius: '20px', color: '#059669' }}>
               <CheckCircle2 size={64} style={{ margin: '0 auto 0.8rem' }} />
               <h3 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Muvaffaqiyatli Yozildingiz!</h3>
               <p style={{ marginTop: '0.4rem', color: '#047857', fontSize: '0.92rem' }}>
-                Tez orada qabulxona xodimi telefon qilib, sizga qulay vaqtni tasdiqlaydi.
+                Shifokor va vaqtingiz tasdiqlandi. Qabulxona xodimi tez orada siz bilan bog'lanadi.
               </p>
               <button className="btn btn-primary" style={{ marginTop: '1.5rem' }} onClick={() => setSuccess(false)}>
                 Yana Yozilish
@@ -591,7 +589,22 @@ function App() {
           ) : (
             <form onSubmit={handleBooking}>
               <div className="form-group">
-                <label className="form-label">Ismingiz va Familiyangiz</label>
+                <label className="form-label">Shifokorni Tanlang *</label>
+                <select 
+                  required
+                  className="form-control"
+                  value={selectedDoctorId}
+                  onChange={e => setSelectedDoctorId(e.target.value)}
+                  style={{ border: '2px solid #0284c7', background: '#f0f9ff', fontWeight: 700 }}
+                >
+                  {doctors.map(d => (
+                    <option key={d.id} value={d.id}>{d.name} — ({d.role})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Ismingiz va Familiyangiz *</label>
                 <input 
                   required 
                   type="text" 
@@ -603,7 +616,7 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Telefon Raqamingiz</label>
+                <label className="form-label">Telefon Raqamingiz *</label>
                 <input 
                   required 
                   type="tel" 
@@ -614,24 +627,40 @@ function App() {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Qabul Kuni va Vaqti</label>
-                <input 
-                  type="datetime-local" 
-                  className="form-control" 
-                  value={bookingDate} 
-                  onChange={e => setBookingDate(e.target.value)} 
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Qabul Kuni *</label>
+                  <input 
+                    required
+                    type="date" 
+                    className="form-control" 
+                    value={bookingDate} 
+                    onChange={e => setBookingDate(e.target.value)} 
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Bo'sh Vaqt (Soat) *</label>
+                  <select 
+                    className="form-control"
+                    value={bookingTime}
+                    onChange={e => setBookingTime(e.target.value)}
+                  >
+                    {TIME_SLOTS.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Qaysi Xizmat Bo'yicha?</label>
+                <label className="form-label">Xizmat Turi (Ixtiyoriy)</label>
                 <select 
                   className="form-control"
                   value={selectedService}
                   onChange={e => setSelectedService(e.target.value)}
                 >
-                  <option value="">-- Xizmatni tanlang (Ixtiyoriy) --</option>
+                  <option value="">-- Xizmatni tanlang --</option>
                   {services.map(s => (
                     <option key={s.id} value={s.name}>{s.name} - {s.price ? s.price.toLocaleString() : "350 000"} so'm</option>
                   ))}
@@ -646,16 +675,16 @@ function App() {
         </div>
       </section>
 
-      {/* FOOTER & ADDRESS (XORAZM VILOYATI QO'SHKO'PIR TUMANI) */}
+      {/* FOOTER & ADDRESS */}
       <footer id="contact" className="footer">
         <div className="footer-inner">
           <div>
             <div className="logo-brand" style={{ marginBottom: '1rem' }}>
-              <div className="logo-icon">
-                <Stethoscope size={22} />
+              <div className="logo-icon" style={{ background: 'linear-gradient(135deg, #0284c7, #06b6d4)' }}>
+                <Gem size={22} color="white" />
               </div>
               <div className="logo-text" style={{ color: 'white' }}>
-                GAVHAR <span>DENTAL</span>
+                GAVHAR <span>STOMA</span>
               </div>
             </div>
             <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '0.9rem' }}>
@@ -697,7 +726,7 @@ function App() {
         </div>
       </footer>
 
-      {/* MOBILE STICKY BOTTOM ACTION BAR (FOR FAST 1-TAP PHONE/BOOKING) */}
+      {/* MOBILE STICKY BOTTOM ACTION BAR */}
       <div className="mobile-bottom-bar">
         <div className="mobile-bottom-inner">
           <a href="tel:+998622200000" className="mobile-btn-call">
