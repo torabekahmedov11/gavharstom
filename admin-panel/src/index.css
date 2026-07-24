@@ -395,9 +395,25 @@ h1, h2, h3, h4, .title {
   .grid-4 { grid-template-columns: 1fr 1fr; }
 }
 
-@media (max-width: 640px) {
-  .grid-3 { grid-template-columns: 1fr; }
-  .grid-4 { grid-template-columns: 1fr; }
-  .teeth-matrix-grid { grid-template-columns: repeat(8, 1fr); }
+/* Print Styles for Thermal Receipt Printer (58mm/80mm or A4) */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #thermal-receipt-print, #thermal-receipt-print * {
+    visibility: visible !important;
+  }
+  #thermal-receipt-print {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    padding: 12px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    color: #000 !important;
+    background: #fff !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
 }
 

@@ -77,6 +77,8 @@ export interface Appointment {
   status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   isLiveQueue: boolean;
   teethNotes?: ToothCondition[];
+  missedCount?: number;
+  clinicalDiagnosis?: string;
   createdAt: string;
 }
 
@@ -333,6 +335,85 @@ export default function App() {
 
     setTelegramAlert(`⏩ Navbatlar ${savedMinutes} daqiqa oldinga surildi! Oxirgi bo'sh vaqt ham oldinga o'tdi.`);
     setTimeout(() => setTelegramAlert(null), 5000);
+  };
+
+  // Handle No-Show Penalty & Auto-Swap Algorithm
+  const handlePatientNoShow = (targetApp: Appointment) => {
+    const currentMissed = (targetApp.missedCount || 0) + 1;
+
+    // Get all confirmed & in-progress queue items for this doctor
+    const docQueue = appointments
+      .filter(a => a.doctorId === targetApp.doctorId && (a.status === 'CONFIRMED' || a.status === 'IN_PROGRESS'))
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+    const currentIndex = docQueue.findIndex(a => a.id === targetApp.id);
+
+    if (currentMissed >= 4) {
+      // 4th Miss -> Delete / Cancel
+      updateAppointmentStatus(targetApp.id, 'CANCELLED');
+      setTelegramAlert(`❌ ${targetApp.patient.firstName} 4 marta kelmagani sababli navbatdan O'CHIRILDI.`);
+      setTimeout(() => setTelegramAlert(null), 5000);
+      return;
+    }
+
+    if (currentMissed === 3) {
+      // 3rd Miss -> Push to very end of today's queue
+      const maxEndMs = Math.max(...docQueue.map(a => new Date(a.endTime).getTime()), Date.now());
+      const durationMs = (targetApp.service.durationMinutes || 30) * 60000;
+      const newStartIso = new Date(maxEndMs).toISOString();
+      const newEndIso = new Date(maxEndMs + durationMs).toISOString();
+
+      const updated = appointments.map(a => a.id === targetApp.id ? {
+        ...a,
+        missedCount: currentMissed,
+        startTime: newStartIso,
+        endTime: newEndIso
+      } : a);
+
+      setAppointments(updated);
+      localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+      setTelegramAlert(`⚠️ ${targetApp.patient.firstName} 3-marta kelmadi. Navbat KUN OXIRIGA surildi!`);
+      setTimeout(() => setTelegramAlert(null), 5000);
+      return;
+    }
+
+    // 1st or 2nd Miss -> Swap positions with the very next patient in line!
+    if (currentIndex >= 0 && currentIndex < docQueue.length - 1) {
+      const nextApp = docQueue[currentIndex + 1];
+
+      const updated = appointments.map(a => {
+        if (a.id === targetApp.id) {
+          return {
+            ...a,
+            missedCount: currentMissed,
+            startTime: nextApp.startTime,
+            endTime: nextApp.endTime
+          };
+        }
+        if (a.id === nextApp.id) {
+          return {
+            ...a,
+            startTime: targetApp.startTime,
+            endTime: targetApp.endTime
+          };
+        }
+        return a;
+      });
+
+      setAppointments(updated);
+      localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+      setTelegramAlert(`❌ Bemor kelmadi (${currentMissed}-ogohlantirish). ${nextApp.patient.firstName} bilan o'rni almashdi!`);
+      setTimeout(() => setTelegramAlert(null), 5000);
+    } else {
+      const updated = appointments.map(a => a.id === targetApp.id ? { ...a, missedCount: currentMissed } : a);
+      setAppointments(updated);
+      localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+      setTelegramAlert(`❌ ${targetApp.patient.firstName} uchun ${currentMissed}-marta "Bemor kelmadi" qayd etildi.`);
+      setTimeout(() => setTelegramAlert(null), 5000);
+    }
   };
 
   const updateAppointmentStatus = (id: string, newStatus: Appointment['status']) => {
@@ -843,15 +924,25 @@ export default function App() {
                           ⏰ {app.startTime.split('T')[1]?.substring(0, 5)} - {app.endTime.split('T')[1]?.substring(0, 5)} ({app.service.name})
                         </div>
 
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                           {app.status === 'CONFIRMED' && (
-                            <button 
-                              className="btn btn-primary btn-sm"
-                              onClick={() => updateAppointmentStatus(app.id, 'IN_PROGRESS')}
-                              style={{ fontSize: '11px' }}
-                            >
-                              Kresloga o'tkazish
-                            </button>
+                            <>
+                              <button 
+                                className="btn btn-primary btn-sm"
+                                onClick={() => updateAppointmentStatus(app.id, 'IN_PROGRESS')}
+                                style={{ fontSize: '11px' }}
+                              >
+                                Kresloga o'tkazish
+                              </button>
+                              <button 
+                                className="btn btn-danger btn-sm"
+                                onClick={() => handlePatientNoShow(app)}
+                                style={{ fontSize: '10.5px', background: '#dc2626' }}
+                                title="Bemor o'z vaqtida kelmadi — keyingi bemor bilan o'rni almashtiriladi"
+                              >
+                                ❌ Kelmadi {app.missedCount ? `(${app.missedCount})` : ''}
+                              </button>
+                            </>
                           )}
                           {app.status === 'IN_PROGRESS' && (
                             <button 
@@ -1177,19 +1268,54 @@ export default function App() {
               ))}
             </div>
 
-            <button 
-              className="btn btn-warning" 
-              style={{ width: '100%', marginBottom: '10px' }} 
-              onClick={() => {
-                const pt = selectedPatient;
-                setSelectedPatient(null);
-                setFollowUpModal(pt);
-              }}
-            >
-              🔄 Takroriy Qabul Yozish (2 kundan keyin)
-            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+              <button 
+                className="btn btn-primary" 
+                style={{ fontSize: '12px' }}
+                onClick={() => window.print()}
+              >
+                🖨️ Chekka Chop Etish (Print)
+              </button>
 
-            <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setSelectedPatient(null)}>
+              <button 
+                className="btn btn-outline" 
+                style={{ fontSize: '12px' }}
+                onClick={() => {
+                  navigator.clipboard.writeText(`Bemor: ${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName}, Vaqt: ${selectedPatient.startTime.split('T')[1]?.substring(0,5)}, Shifokor: ${selectedPatient.doctor.firstName}`);
+                  setTelegramAlert(`📋 Bemor ma'lumoti buferga nusxalandi!`);
+                  setTimeout(() => setTelegramAlert(null), 3000);
+                }}
+              >
+                💬 Ulashish / Nusxalash
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+              <button 
+                className="btn btn-warning" 
+                style={{ fontSize: '12px' }} 
+                onClick={() => {
+                  const pt = selectedPatient;
+                  setSelectedPatient(null);
+                  setFollowUpModal(pt);
+                }}
+              >
+                🔄 Takroriy Qabul Yozish
+              </button>
+
+              <button 
+                className="btn btn-danger" 
+                style={{ fontSize: '12px', background: '#dc2626' }}
+                onClick={() => {
+                  updateAppointmentStatus(selectedPatient.id, 'CANCELLED');
+                  setSelectedPatient(null);
+                }}
+              >
+                🗑️ Navbatdan O'chirish
+              </button>
+            </div>
+
+            <button className="btn btn-outline" style={{ width: '100%' }} onClick={() => setSelectedPatient(null)}>
               Yopish
             </button>
           </div>
@@ -1587,6 +1713,36 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* HIDDEN PRINT CONTAINER FOR THERMAL RECEIPT / CHEK PRINTING */}
+      <div id="thermal-receipt-print">
+        {selectedPatient ? (
+          <div>
+            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }}>
+              💎 GAVHAR STOMATOLOGIYA
+            </div>
+            <div style={{ textAlign: 'center', fontSize: '10px', marginBottom: '8px' }}>
+              Zamonaviy Tish Davolash Markazi<br/>
+              Tel: +998 90 123 45 67
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
+            <div style={{ fontWeight: 'bold', fontSize: '13px', textAlign: 'center', marginBottom: '6px' }}>
+              QABUL TIKETI #{selectedPatient.id.substring(0, 6)}
+            </div>
+            <div>BEMOR: {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}</div>
+            <div>TEL: {selectedPatient.patient.phoneNumber}</div>
+            <div>SHIFOKOR: {selectedPatient.doctor.firstName} {selectedPatient.doctor.lastName}</div>
+            <div>XIZMAT: {selectedPatient.service.name}</div>
+            <div>SANA: {selectedPatient.startTime.split('T')[0]}</div>
+            <div>VAQT: {selectedPatient.startTime.split('T')[1]?.substring(0, 5)} - {selectedPatient.endTime.split('T')[1]?.substring(0, 5)}</div>
+            {selectedPatient.patient.symptom && <div>SHIKOYAT: {selectedPatient.patient.symptom}</div>}
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
+            <div style={{ fontSize: '10px', textAlign: 'center' }}>
+              Rahmat! Sog'lig'ingizni asrang.<br/>
+              gavharstom.uz
+            </div>
+          </div>
+        ) : null}
+      </div>
 
     </div>
   );
