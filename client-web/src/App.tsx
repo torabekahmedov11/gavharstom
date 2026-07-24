@@ -22,12 +22,23 @@ import {
   CalendarCheck,
   UserCheck,
   AlertCircle,
-  Check
+  Check,
+  Stethoscope
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const DEFAULT_SERVICES = [
+  {
+    id: 's0',
+    name: "Bepul Konsultatsiya & Diagnostika",
+    description: "Qaysi davolash kerakligini bilmasangiz — shifokorimiz tishingizni bepul ko'rikdan o'tkazib, aniq tashxis va tavsiya beradi.",
+    price: 0,
+    durationMinutes: 30,
+    icon: Stethoscope,
+    gradient: "linear-gradient(135deg, #10b981, #059669)",
+    tag: "Eng ko'p tanlanadi (Bepul)"
+  },
   {
     id: 's1',
     name: "Swiss Implantatsiya",
@@ -146,7 +157,9 @@ function App() {
   
   // Form State
   const [selectedDoctorId, setSelectedDoctorId] = useState('d1');
-  const [selectedService, setSelectedService] = useState('Swiss Implantatsiya');
+  const [selectedService, setSelectedService] = useState('Bepul Konsultatsiya & Diagnostika');
+  const [selectedSymptom, setSelectedSymptom] = useState("❓ Bilmayman / Shunchaki ko'rik va diagnostika");
+  const [patientNote, setPatientNote] = useState('');
   const [firstName, setFirstName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('+998');
   const [bookingDate, setBookingDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -688,9 +701,14 @@ function App() {
                 </select>
               </div>
 
+              {/* Helpful Tip for Patients */}
+              <div style={{ padding: '14px 16px', borderRadius: '14px', background: '#ecfdf5', border: '1px solid #a7f3d0', fontSize: '0.85rem', color: '#047857', marginBottom: '1.2rem', lineHeight: '1.5' }}>
+                💡 <b>Tishingizga nima bo'lganini aniq bilmaysizmi?</b> Xavotir olmang! Xizmat bo'limidan <b>"Bepul Konsultatsiya & Diagnostika"</b>ni tanlang. Shifokorimiz joyida ko'rib, aniq tashxis va tavsiya beradi!
+              </div>
+
               {/* 2. Select Service */}
               <div className="form-group">
-                <label className="form-label">2. Xizmat Turi (Davomiyligi va Narxi) *</label>
+                <label className="form-label">2. Xizmat Turi *</label>
                 <select 
                   required
                   className="form-control"
@@ -699,13 +717,59 @@ function App() {
                 >
                   {services.map(s => (
                     <option key={s.id} value={s.name}>
-                      {s.name} — {s.price ? s.price.toLocaleString() : "350 000"} so'm ({s.durationMinutes || 30} daqiqa)
+                      {s.name} — {s.price ? `${s.price.toLocaleString()} so'm` : "BEPUL"} ({s.durationMinutes || 30} daqiqa)
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* 3. Patient Name and Phone */}
+              {/* 3. Symptom Selection */}
+              <div className="form-group">
+                <label className="form-label">3. Tishingizdagi Asosiy Bezovtalik / Simptom</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px', marginTop: '6px' }}>
+                  {[
+                    "❓ Bilmayman / Shunchaki ko'rik va diagnostika",
+                    "🦷 Tishim og'riyapti (Og'riq / Shish)",
+                    "🥶 Issiq yoki sovuqqa ta'sirchan",
+                    "🩸 Milk qonashi yoki qimirlashi",
+                    "✨ Estetik (Vinir / Oqartirish / Braket)"
+                  ].map(sym => (
+                    <button
+                      key={sym}
+                      type="button"
+                      onClick={() => setSelectedSymptom(sym)}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        border: selectedSymptom === sym ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                        background: selectedSymptom === sym ? '#e0f2fe' : 'var(--card)',
+                        color: selectedSymptom === sym ? '#0369a1' : '#334155',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {sym}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Patient Problem Note (Optional) */}
+              <div className="form-group">
+                <label className="form-label">4. Bezovtalik Haqida Izoh (Ixtiyoriy)</label>
+                <input 
+                  type="text"
+                  className="form-control"
+                  placeholder="Masalan: Kechasi pastki jag'imda o'tkir og'riq bo'ldi..."
+                  value={patientNote}
+                  onChange={e => setPatientNote(e.target.value)}
+                />
+              </div>
+
+              {/* 5. Patient Name and Phone */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Ismingiz va Familiyangiz *</label>
