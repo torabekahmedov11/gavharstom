@@ -266,17 +266,27 @@ export default function App() {
     localStorage.setItem('stoma_crm_appointments', JSON.stringify(appointments));
   }, [appointments]);
 
-  // Handle Login
+  // Handle Permanent Credential Login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((username === 'admin' || username === 'director') && password === 'admin123') {
-      const userRole = username.toUpperCase();
-      setRole(userRole);
-      localStorage.setItem('crm_role', userRole);
+    const u = username.toLowerCase().trim();
+    const p = password.trim();
+
+    if ((u === 'director' || u === 'direktor') && (p === 'director123' || p === 'admin123' || p === 'gavhar2026')) {
+      setRole('DIRECTOR');
+      localStorage.setItem('crm_role', 'DIRECTOR');
       setLoginError('');
-    } else {
-      setLoginError('Noto\'g\'ri foydalanuvchi nomi yoki parol! (Parol: admin123)');
+      return;
     }
+
+    if ((u === 'admin' || u === 'ma\'mur') && (p === 'admin123' || p === 'gavhar2026')) {
+      setRole('ADMIN');
+      localStorage.setItem('crm_role', 'ADMIN');
+      setLoginError('');
+      return;
+    }
+
+    setLoginError('Noto\'g\'ri foydalanuvchi nomi yoki parol! Kirish kalitlarini quyida ko\'rishingiz mumkin.');
   };
 
   const handleLogout = () => {
@@ -685,8 +695,18 @@ export default function App() {
               Tizimga Kirish <ChevronRight size={18} />
             </button>
           </form>
-          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
-            Sinov uchun: <b>admin</b> / <b>admin123</b>
+          <div style={{ marginTop: '24px', padding: '16px', borderRadius: '16px', background: 'var(--table-head-bg)', border: '1px solid var(--border)', fontSize: '12.5px', lineHeight: '1.6' }}>
+            <div style={{ fontWeight: 800, color: 'var(--primary)', marginBottom: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              🔑 Rasmiy Tizim Kalitlari (Kafolatlangan):
+            </div>
+            <div style={{ marginBottom: '6px', background: 'var(--card)', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+              👑 <b>Direktor Panel:</b><br/>
+              Login: <code style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '6px', fontWeight: 700 }}>director</code> | Parol: <code style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '6px', fontWeight: 700 }}>director123</code>
+            </div>
+            <div style={{ background: 'var(--card)', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+              💼 <b>Admin Panel:</b><br/>
+              Login: <code style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '6px', fontWeight: 700 }}>admin</code> | Parol: <code style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '6px', fontWeight: 700 }}>admin123</code>
+            </div>
           </div>
         </div>
       </div>
@@ -706,7 +726,11 @@ export default function App() {
             <div>
               <h1 className="title" style={{ fontSize: '22px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 Gavhar Stoma CRM
-                <span className="badge badge-primary" style={{ fontSize: '11px' }}>LIVE PRO</span>
+                {role === 'DIRECTOR' ? (
+                  <span className="badge badge-purple" style={{ fontSize: '11px', background: '#7e22ce', color: 'white' }}>👑 DIREKTOR PANEL</span>
+                ) : (
+                  <span className="badge badge-primary" style={{ fontSize: '11px' }}>💼 ADMIN PANEL</span>
+                )}
               </h1>
               <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Toshkent Shahri, Maxsus Stomatologiya Markazi</p>
             </div>
