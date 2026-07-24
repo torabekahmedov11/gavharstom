@@ -146,8 +146,8 @@ h1, h2, h3, h4, .title {
 
 .grid-3-col {
   display: grid;
-  grid-template-columns: 1.1fr 1.5fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1fr 1.25fr 260px;
+  gap: 16px;
 }
 
 .grid-4 {

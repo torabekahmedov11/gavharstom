@@ -429,8 +429,21 @@ export default function App() {
   const updateAppointmentStatus = (id: string, newStatus: Appointment['status']) => {
     const targetApp = appointments.find(a => a.id === id);
     
-    // Check if finishing early
-    if (newStatus === 'COMPLETED' && targetApp && targetApp.status === 'IN_PROGRESS') {
+    if (newStatus === 'COMPLETED' && targetApp) {
+      // 1. Mark appointment as COMPLETED immediately
+      const updated = appointments.map(app => app.id === id ? { 
+        ...app, 
+        status: 'COMPLETED' as const,
+        endTime: new Date().toISOString() 
+      } : app);
+
+      setAppointments(updated);
+      localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
+
+      // 2. Free doctor back to WORKING status
+      setDoctors(prev => prev.map(d => d.id === targetApp.doctorId ? { ...d, dutyStatus: 'WORKING' as const } : d));
+
+      // 3. Check if early finish and subsequent patients exist to offer cascade shift
       const scheduledEndMs = new Date(targetApp.endTime).getTime();
       const nowMs = Date.now();
       const diffMinutes = Math.round((scheduledEndMs - nowMs) / 60000);
@@ -441,23 +454,16 @@ export default function App() {
         (a.status === 'CONFIRMED' || a.status === 'PENDING')
       ) || null;
 
-      if (diffMinutes > 5) {
+      if (diffMinutes > 5 && nextInQueue) {
         setEarlyCallModal({
           completedApp: targetApp,
           nextApp: nextInQueue,
           savedMinutes: diffMinutes
         });
-        return;
+      } else {
+        setTelegramAlert(`✅ ${targetApp.patient.firstName} ning qabuli yakunlandi! Shifokor qabulga bo'shadi.`);
+        setTimeout(() => setTelegramAlert(null), 4000);
       }
-
-      const updated = appointments.map(app => app.id === id ? { 
-        ...app, 
-        status: 'COMPLETED' as const,
-        endTime: new Date().toISOString() 
-      } : app);
-
-      setAppointments(updated);
-      localStorage.setItem('stoma_crm_appointments', JSON.stringify(updated));
       return;
     }
 
@@ -725,14 +731,14 @@ export default function App() {
             </div>
             <div>
               <h1 className="title" style={{ fontSize: '22px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                Gavhar Stoma CRM
+                Gavhar Stomatologiya CRM
                 {role === 'DIRECTOR' ? (
                   <span className="badge badge-purple" style={{ fontSize: '11px', background: '#7e22ce', color: 'white' }}>👑 DIREKTOR PANEL</span>
                 ) : (
                   <span className="badge badge-primary" style={{ fontSize: '11px' }}>💼 ADMIN PANEL</span>
                 )}
               </h1>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Toshkent Shahri, Maxsus Stomatologiya Markazi</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Xorazm Viloyati, Qo'shko'pir Tumani, Zamonaviy Tish Davolash Markazi</p>
             </div>
           </div>
 
@@ -768,46 +774,19 @@ export default function App() {
           </div>
         )}
 
-        {/* KPI Metrics */}
-        <div className="grid-4" style={{ marginBottom: '24px' }}>
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '14px', borderRadius: '16px', background: '#e0f2fe', color: '#0284c7' }}>
-              <DollarSign size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>MOLIYAVIY TUSHUM</div>
-              <div style={{ fontSize: '19px', fontWeight: 800, marginTop: '2px' }}>{totalRevenue.toLocaleString()} UZS</div>
-            </div>
+        {/* COMPACT KPI METRIC SUMMARY STRIP BAR (SUPER SPACE SAVER FOR ADMINS) */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderRadius: '16px', background: 'var(--card)', border: '1px solid var(--border)', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700 }}>
+            <DollarSign size={16} color="#0284c7" /> Tushum: <b style={{ color: '#0284c7', fontSize: '14px' }}>{totalRevenue.toLocaleString()} UZS</b>
           </div>
-
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '14px', borderRadius: '16px', background: '#fef3c7', color: '#d97706' }}>
-              <Clock size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>YANGI TUSHGAN (TASDIQLANMAGAN)</div>
-              <div style={{ fontSize: '19px', fontWeight: 800, marginTop: '2px' }}>{pendingAppointments.length} ta Bemor</div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700 }}>
+            <Clock size={16} color="#d97706" /> Yangi Tushgan: <b style={{ color: '#d97706', fontSize: '14px' }}>{pendingAppointments.length} ta</b>
           </div>
-
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '14px', borderRadius: '16px', background: '#dcfce7', color: '#15803d' }}>
-              <UserCheck size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>NAVBAТI YA QINLASHGANLAR</div>
-              <div style={{ fontSize: '19px', fontWeight: 800, marginTop: '2px' }}>{confirmedQueue.length} ta Bemor</div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700 }}>
+            <UserCheck size={16} color="#10b981" /> Qabulda / Tasdiqlangan: <b style={{ color: '#10b981', fontSize: '14px' }}>{confirmedQueue.length} ta</b>
           </div>
-
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ padding: '14px', borderRadius: '16px', background: '#f3e8ff', color: '#7e22ce' }}>
-              <Stethoscope size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>SHIFOKORLAR ISHDA</div>
-              <div style={{ fontSize: '19px', fontWeight: 800, marginTop: '2px' }}>{doctors.filter(d => d.dutyStatus !== 'OFF_DUTY').length} / {doctors.length} Shifokor</div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700 }}>
+            <Stethoscope size={16} color="#7e22ce" /> Shifokorlar: <b style={{ color: '#7e22ce', fontSize: '14px' }}>{doctors.filter(d => d.dutyStatus !== 'OFF_DUTY').length} / {doctors.length} Ishda</b>
           </div>
         </div>
 
